@@ -39,7 +39,6 @@ describe("IDO", function () {
     const idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)
 
-
     // 用户用usdt给ido合约授权
     console.log("user approve usdt to ido")
     await tether.connect(userSigner).approve(idoAddress, ethers.constants.MaxUint256)
