@@ -71,7 +71,6 @@ contract IDO is Ownable {
     bool pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     Balance[] public _balances; // 用户购买lkk查询
-    mapping(address => uint256) _lockBalances; // 用户购买锁仓量查询
 
     fallback() external payable {}
 
@@ -183,7 +182,6 @@ contract IDO is Ownable {
 
         // 打lkk给用户
         LKKToken(lkkAddress).transfer(msg.sender, lkkAmount - lockLkkAmount);
-        _lockBalances[msg.sender] = _lockBalances[msg.sender] + lockLkkAmount;
 
         // 收钱
         uint256 curSum = 0;
@@ -196,7 +194,7 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, 0, block.timestamp));
+        _balances.push(Balance(msg.sender, lkkAmount, lkkAmount - lockLkkAmount, block.timestamp));
         return true;
     }
 
@@ -229,8 +227,7 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, 0, block.timestamp));
-        _lockBalances[msg.sender] = _lockBalances[msg.sender] + lockLkkAmount;
+        _balances.push(Balance(msg.sender, lkkAmount, lkkAmount - lockLkkAmount, block.timestamp));
 
         return true;
     }
@@ -244,7 +241,11 @@ contract IDO is Ownable {
     }
 
     function lockBalanceOf(address src) public view returns (uint256) {
-        return _lockBalances[src];
+        uint256 total = 0;
+        for (uint256 i = 0; i < _balances.length; i++) {
+            total += _balances[i].target == src ? (_balances[i].amount - _balances[i].deblock) : 0;
+        }
+        return total;
     }
 
     function updateBeginTime(uint256 _beginTime) public onlyOwner {
