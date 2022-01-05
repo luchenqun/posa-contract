@@ -47,6 +47,7 @@ contract IDO is Ownable {
     struct Balance {
         address target; // 收款人
         uint256 amount; // 金额
+        uint256 deblock; // 解锁数量
         uint256 time; // 购买时间
     }
 
@@ -109,12 +110,8 @@ contract IDO is Ownable {
         uint256 _endTime,
         uint256 _perMinBuy,
         uint256 _perMaxBuy,
-        uint256 _limitBuy
-    ) 
-    // 入参过多会导致栈溢出
-    // uint256 _releaseRatio
-    // uint256 _lockTime
-    // uint256 _deblockStartTime
+        uint256 _limitBuy // 入参过多会导致栈溢出 // uint256 _releaseRatio // uint256 _lockTime
+    ) // uint256 _deblockStartTime
     // uint256 _deblockEndTime
     // uint256 _deblockCount,
     // uint256 _oriTokenToLkkRation,
@@ -134,12 +131,12 @@ contract IDO is Ownable {
         payees.push(Payee(payable(msg.sender), 100)); // 默认部署者全部收了
 
         releaseRatio = 10;
-        lockTime = beginTime + 3 * 30 * 24 * 3600;
-        deblockStartTime = beginTime + 3 * 30 * 24 * 3600;
-        deblockEndTime = beginTime + 6 * 30 * 24 * 3600;
-        deblockCount = 10;
-        oriTokenToLkkRation = 1024;
-        usdtToLkkRation = 8;
+        lockTime = beginTime + 3 * 30 * 24 * 3600; // 锁三个月
+        deblockStartTime = beginTime + 3 * 30 * 24 * 3600; // 解锁开始时间
+        deblockEndTime = beginTime + 6 * 30 * 24 * 3600; // 解锁结束时间
+        deblockCount = 10; // 能解锁10次
+        oriTokenToLkkRation = 1024; // 一个原生币能换多少个LKK(注意要考虑小数位数)
+        usdtToLkkRation = 8; // 一个原生币能换多少个LKK(注意要考虑小数位数)
 
         pause = false;
     }
@@ -160,6 +157,16 @@ contract IDO is Ownable {
         console.log("withdraw:", msg.sender, lkkAmount);
         LKKToken(lkkAddress).transfer(msg.sender, lkkAmount);
         return true;
+    }
+
+    // 传入原生币数量，能换取多少LKK币
+    function getLkkByOriToken(uint256 amount) public view returns (uint256) {
+        return oriTokenToLkkRation * amount;
+    }
+
+    // 传入USDT数量，能换取多少LKK币
+    function getLkkByUSDT(uint256 amount) public view returns (uint256) {
+        return usdtToLkkRation * amount;
     }
 
     // 使用原生币购买lkk
@@ -189,7 +196,7 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, block.timestamp));
+        _balances.push(Balance(msg.sender, lkkAmount, 0, block.timestamp));
         return true;
     }
 
@@ -222,7 +229,7 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, block.timestamp));
+        _balances.push(Balance(msg.sender, lkkAmount, 0, block.timestamp));
         _lockBalances[msg.sender] = _lockBalances[msg.sender] + lockLkkAmount;
 
         return true;
