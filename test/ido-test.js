@@ -6,9 +6,9 @@ describe("IDO", function () {
     const idoSigner = ethers.provider.getSigner(0);
     const otherSigner = ethers.provider.getSigner(1);
     const userSigner = ethers.provider.getSigner(2);
-    const presellMax = "1000000000000000000000000000"
+    const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
     const userUsdtAmount = 1000000000000
-    const totalSupplyMax = "1000000000000000000000000000000000000000"
+    const totalSupplyMax = presellMax + "000"
 
     // Tether Deploy
     const Tether = await ethers.getContractFactory("TetherToken", otherSigner);
@@ -34,7 +34,24 @@ describe("IDO", function () {
 
     // IDO Deploy
     const IDO = await ethers.getContractFactory("IDO", idoSigner);
-    const ido = await IDO.deploy("IDO #01", "1000000000000000000000000000000000", tetherAddress, lkkAddress);
+    const now = parseInt(new Date().getTime() / 1000);
+    let name = "IDO #01",
+      // presellMax = "1000000000000000000000000000000000",
+      usdtAddress = tetherAddress,
+      // lkkAddress = lkkAddress,
+      beginTime = now,
+      endTime = now + 6 * 30 * 24 * 3600,
+      perMinBuy = 1,
+      perMaxBuy = presellMax.substring(0, 28),
+      limitBuy = presellMax.substring(0, 38),
+      releaseRatio = 10,
+      lockTime = now + 3 * 30 * 24 * 3600,
+      deblockStartTime = now + 3 * 30 * 24 * 3600,
+      deblockEndTime = now + 6 * 30 * 24 * 3600,
+      deblockCount = 10,
+      oriTokenToLkkRation = 1024,
+      usdtToLkkRation = 8;
+    const ido = await IDO.deploy(name, presellMax, usdtAddress, lkkAddress, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy);
     await ido.deployed();
     const idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)
@@ -59,13 +76,13 @@ describe("IDO", function () {
 
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
-    await ido.connect(userSigner).buyWithOriToken({ value: "1000000000000000000" })
+    await ido.connect(userSigner).buyWithOriToken({ value: 1234 })
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
 
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
     console.log("before buyWithUSDT usdt amount", await tether.balanceOf(await userSigner.getAddress()))
-    await ido.connect(userSigner).buyWithUSDT(888888) // 不能直接一把梭全买了，usdt还要扣手续费
+    await ido.connect(userSigner).buyWithUSDT(888888)
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(await userSigner.getAddress()))
   });
