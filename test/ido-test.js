@@ -85,5 +85,9 @@ describe("IDO", function () {
     await ido.connect(userSigner).buyWithUSDT(888888)
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(await userSigner.getAddress()))
+
+    console.log("before deblockLkk amount", await lkk.balanceOf(await userSigner.getAddress()))
+    await ido.connect(userSigner).deblockLkk(100)
+    console.log("after deblockLkk amount", await lkk.balanceOf(await userSigner.getAddress()))
   });
 });

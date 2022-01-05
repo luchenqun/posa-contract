@@ -10,7 +10,7 @@ import "./LKKToken.sol";
 // √ 2、暂停预售设置：暂停预售，可开启暂停，可关闭暂停
 // √ 3、预售总量设置：即使项目方往预售合约中存入了超过总量设置的LKK，实际预售总量也不会超过该设置
 // √ 4、当前剩余待售数量查询：小于单次交易最小购买数量，则不再接收新的交易
-// 5、单次交易购买最小数量、单次交易最大数量、单个地址的购买数量上限设置：{最大购买数量，当前预售期余量，单个地址购买数量上限-已购买总量}三者中较小值，如果较小值已经低于最小购买数量，则用户无法再继续购买，可查询
+// √ 5、单次交易购买最小数量、单次交易最大数量、单个地址的购买数量上限设置：{最大购买数量，当前预售期余量，单个地址购买数量上限-已购买总量}三者中较小值，如果较小值已经低于最小购买数量，则用户无法再继续购买，可查询
 // √ 6、当前用户地址已购买的总量查询
 // √ 7、支付币种和预售单价设置：不接受设置外的币种支付，可查询，可更新
 // √ 8、设置收款地址：接收用户支付的代币，可查询，可修改，可设置多地址和分配比例，每个地址按比例分得入金，至少保留一个收款地址
@@ -109,13 +109,8 @@ contract IDO is Ownable {
         uint256 _endTime,
         uint256 _perMinBuy,
         uint256 _perMaxBuy,
-        uint256 _limitBuy // 入参过多会导致栈溢出 // uint256 _releaseRatio // uint256 _lockTime
-    ) // uint256 _deblockStartTime
-    // uint256 _deblockEndTime
-    // uint256 _deblockCount,
-    // uint256 _oriTokenToLkkRation,
-    // uint256 _usdtToLkkRation
-    {
+        uint256 _limitBuy // 入参过多会导致栈溢出 // uint256 _releaseRatio // uint256 _lockTime // uint256 _deblockStartTime // uint256 _deblockEndTime // uint256 _deblockCount, // uint256 _oriTokenToLkkRation, // uint256 _usdtToLkkRation
+    ) {
         name = _name;
         usdtAddress = _usdtAddress;
         lkkAddress = _lkkAddress;
@@ -194,7 +189,14 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, lkkAmount - lockLkkAmount, block.timestamp));
+        _balances.push(
+            Balance(
+                msg.sender,
+                lkkAmount,
+                lkkAmount - lockLkkAmount,
+                block.timestamp
+            )
+        );
         return true;
     }
 
@@ -227,11 +229,46 @@ contract IDO is Ownable {
         }
 
         presellTotal += lkkAmount;
-        _balances.push(Balance(msg.sender, lkkAmount, lkkAmount - lockLkkAmount, block.timestamp));
+        _balances.push(
+            Balance(
+                msg.sender,
+                lkkAmount,
+                lkkAmount - lockLkkAmount,
+                block.timestamp
+            )
+        );
 
         return true;
     }
 
+    // 解锁LKK
+    function deblockLkk(uint256 amount) external virtual returns (bool) {
+        // 打lkk给用户
+        uint256 lockAmount = lockBalanceOf(msg.sender); // @todo 此处应该线性计算可解锁的数量
+        require(
+            lockAmount >= amount,
+            "IDO: lockAmount shoud greater than amount"
+        );
+
+        uint256 total = 0;
+        for (uint256 i = 0; i < _balances.length; i++) {
+            uint256 curUndeblock = _balances[i].amount - _balances[i].deblock;
+            if (_balances[i].target == msg.sender && curUndeblock > 0) {
+                total += curUndeblock;
+                if (total <= amount) {
+                    _balances[i].deblock = _balances[i].amount;
+                } else {
+                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
+                    break;
+                }
+            }
+        }
+        LKKToken(lkkAddress).transfer(msg.sender, amount);
+
+        return true;
+    }
+
+    // 查询用户购买了多少
     function balanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
         for (uint256 i = 0; i < _balances.length; i++) {
@@ -240,12 +277,58 @@ contract IDO is Ownable {
         return total;
     }
 
+    // 查询用户还有多少锁仓
     function lockBalanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
         for (uint256 i = 0; i < _balances.length; i++) {
-            total += _balances[i].target == src ? (_balances[i].amount - _balances[i].deblock) : 0;
+            total += _balances[i].target == src
+                ? (_balances[i].amount - _balances[i].deblock)
+                : 0;
         }
         return total;
+    }
+
+    function updatePresellMax(uint256 _presellMax) public onlyOwner {
+        presellMax = _presellMax;
+    }
+
+    function updatePresellTotal(uint256 _presellTotal) public onlyOwner {
+        presellTotal = _presellTotal;
+    }
+
+    function updatePerMinBuy(uint256 _perMinBuy) public onlyOwner {
+        perMinBuy = _perMinBuy;
+    }
+
+    function updatePerMaxBuy(uint256 _perMaxBuy) public onlyOwner {
+        perMaxBuy = _perMaxBuy;
+    }
+
+    function updateLimitBuy(uint256 _limitBuy) public onlyOwner {
+        limitBuy = _limitBuy;
+    }
+
+    function updateReleaseRatio(uint256 _releaseRatio) public onlyOwner {
+        releaseRatio = _releaseRatio;
+    }
+
+    function updateLockTime(uint256 _lockTime) public onlyOwner {
+        lockTime = _lockTime;
+    }
+
+    function updateDeblockStartTime(uint256 _deblockStartTime)
+        public
+        onlyOwner
+    {
+        deblockStartTime = _deblockStartTime;
+    }
+
+    function updateDeblockEndTime(uint256 _deblockEndTime) public onlyOwner {
+        deblockEndTime = _deblockEndTime;
+    }
+
+    function updateDeblockCount(uint256 _deblockCount) public onlyOwner {
+        deblockCount = _deblockCount;
     }
 
     function updateBeginTime(uint256 _beginTime) public onlyOwner {
