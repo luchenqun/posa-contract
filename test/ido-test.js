@@ -6,7 +6,7 @@ describe("IDO", function () {
     const idoSigner = ethers.provider.getSigner(0);
     const otherSigner = ethers.provider.getSigner(1);
     const userSigner = ethers.provider.getSigner(2);
-    
+
     const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
     const userUsdtAmount = 1000000000000
     const totalSupplyMax = presellMax + "000"
@@ -46,13 +46,12 @@ describe("IDO", function () {
       perMaxBuy = presellMax.substring(0, 28),
       limitBuy = presellMax.substring(0, 38),
       releaseRatio = 10,
-      lockTime = now + 3 * 30 * 24 * 3600,
-      deblockStartTime = now + 3 * 30 * 24 * 3600,
-      deblockEndTime = now + 6 * 30 * 24 * 3600,
+      lockTime = 3 * 30 * 24 * 3600,
+      deblockTime = 3 * 30 * 24 * 3600,
       deblockCount = 10,
       oriTokenToLkkRation = 1024,
       usdtToLkkRation = 8;
-    const ido = await IDO.deploy(name, presellMax, usdtAddress, lkkAddress, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy);
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRation, usdtToLkkRation]);
     await ido.deployed();
     const idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)

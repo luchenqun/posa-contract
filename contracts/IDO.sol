@@ -103,34 +103,30 @@ contract IDO is Ownable {
 
     constructor(
         string memory _name,
-        uint256 _presellMax,
         address _usdtAddress,
         address _lkkAddress,
-        uint256 _beginTime,
-        uint256 _endTime,
-        uint256 _perMinBuy,
-        uint256 _perMaxBuy,
-        uint256 _limitBuy // 入参过多会导致栈溢出 // uint256 _releaseRatio // uint256 _lockTime // uint256 _deblockStartTime // uint256 _deblockEndTime // uint256 _deblockCount, // uint256 _oriTokenToLkkRation, // uint256 _usdtToLkkRation
+        uint256[] memory params
     ) {
         name = _name;
         usdtAddress = _usdtAddress;
         lkkAddress = _lkkAddress;
-        presellMax = _presellMax;
-        beginTime = _beginTime;
-        endTime = _endTime;
 
-        perMinBuy = _perMinBuy;
-        perMaxBuy = _perMaxBuy;
-        limitBuy = _limitBuy;
+        presellMax = params[0];
+        beginTime = params[1];
+        endTime = params[2];
+
+        perMinBuy = params[3];
+        perMaxBuy = params[4];
+        limitBuy = params[5];
 
         payees.push(Payee(payable(msg.sender), 100)); // 默认部署者全部收了
 
-        releaseRatio = 10;
-        lockTime = beginTime + 3 * 30 * 24 * 3600; // 锁三个月
-        deblockTime = 3 * 30 * 24 * 3600; // 解锁时间
-        deblockCount = 10; // 能解锁10次
-        oriTokenToLkkRation = 1024; // 一个原生币能换多少个LKK(注意要考虑小数位数)
-        usdtToLkkRation = 8; // 一个原生币能换多少个LKK(注意要考虑小数位数)
+        releaseRatio = params[6];
+        lockTime = params[7];
+        deblockTime = params[8];
+        deblockCount = params[9];
+        oriTokenToLkkRation = params[10];
+        usdtToLkkRation = params[11];
 
         pause = false;
     }
