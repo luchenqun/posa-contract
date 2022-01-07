@@ -46,9 +46,11 @@ contract IDO is Ownable {
     }
     struct Balance {
         address target; // 收款人
+        uint256 origin; // 原始金额
         uint256 amount; // 金额
         uint256 deblock; // 解锁数量
         uint256 time; // 购买时间
+        uint256 currency; // 购买币种
     }
 
     string name; // 预售名称
@@ -62,10 +64,9 @@ contract IDO is Ownable {
     uint256 perMaxBuy; // 每次最大购买
     uint256 limitBuy; // 最大购买
     uint256 releaseRatio; // 购买释放比例
-    uint256 lockTime; // 封闭结束时间，单位秒
-    uint256 deblockStartTime; // 解锁开始时间，单位秒
-    uint256 deblockEndTime; // 解锁结束时间，单位秒
-    uint256 deblockCount; // 在 [deblockStartTime, deblockEndTime] 可线性解锁多少次
+    uint256 lockTime; // 买了之后，封闭多长时间不允许提取，单位秒
+    uint256 deblockTime; // 解锁时间长度，单位秒
+    uint256 deblockCount; // 在 deblockTime 可线性解锁多少次
     uint256 oriTokenToLkkRation; // 原生 token 兑换 lkk 比例
     uint256 usdtToLkkRation; // usdt 兑换 lkk比例
     bool pause; // 预售暂停
@@ -126,8 +127,7 @@ contract IDO is Ownable {
 
         releaseRatio = 10;
         lockTime = beginTime + 3 * 30 * 24 * 3600; // 锁三个月
-        deblockStartTime = beginTime + 3 * 30 * 24 * 3600; // 解锁开始时间
-        deblockEndTime = beginTime + 6 * 30 * 24 * 3600; // 解锁结束时间
+        deblockTime = 3 * 30 * 24 * 3600; // 解锁时间
         deblockCount = 10; // 能解锁10次
         oriTokenToLkkRation = 1024; // 一个原生币能换多少个LKK(注意要考虑小数位数)
         usdtToLkkRation = 8; // 一个原生币能换多少个LKK(注意要考虑小数位数)
@@ -192,9 +192,11 @@ contract IDO is Ownable {
         _balances.push(
             Balance(
                 msg.sender,
+                value,
                 lkkAmount,
                 lkkAmount - lockLkkAmount,
-                block.timestamp
+                block.timestamp,
+                0
             )
         );
         return true;
@@ -232,9 +234,11 @@ contract IDO is Ownable {
         _balances.push(
             Balance(
                 msg.sender,
+                usdtAmount,
                 lkkAmount,
                 lkkAmount - lockLkkAmount,
-                block.timestamp
+                block.timestamp,
+                1
             )
         );
 
@@ -258,7 +262,9 @@ contract IDO is Ownable {
                 if (total <= amount) {
                     _balances[i].deblock = _balances[i].amount;
                 } else {
-                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
+                    _balances[i].deblock =
+                        _balances[i].deblock +
+                        (total - amount); // 解锁一部分
                     break;
                 }
             }
@@ -316,15 +322,8 @@ contract IDO is Ownable {
         lockTime = _lockTime;
     }
 
-    function updateDeblockStartTime(uint256 _deblockStartTime)
-        public
-        onlyOwner
-    {
-        deblockStartTime = _deblockStartTime;
-    }
-
-    function updateDeblockEndTime(uint256 _deblockEndTime) public onlyOwner {
-        deblockEndTime = _deblockEndTime;
+    function updateDeblockTime(uint256 _deblockTime) public onlyOwner {
+        deblockTime = _deblockTime;
     }
 
     function updateDeblockCount(uint256 _deblockCount) public onlyOwner {

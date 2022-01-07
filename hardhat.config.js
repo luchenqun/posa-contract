@@ -34,7 +34,6 @@ module.exports = {
         version: "0.4.18"
       }
     }
-
   },
   defaultNetwork: "hardhat", // hardhat localhost
   networks: {
@@ -42,7 +41,7 @@ module.exports = {
       url: "http://127.0.0.1:40000",
       chainId: 1024,
       gasPrice: 5000000000,
-      accounts: ["f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769", "95e06fa1a8411d7f6693f486f0f450b122c58feadbcee43fbd02e13da59395d5"],
+      accounts: ["f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769", "95e06fa1a8411d7f6693f486f0f450b122c58feadbcee43fbd02e13da59395d5", "322673135bc119c82300450aed4f29373c06926f02a03f15d31cac3db1ee7716"],
     }
   },
 };
