@@ -46,9 +46,11 @@ contract IDO is Ownable {
     }
     struct Balance {
         address target; // 收款人
+        uint256 origin; // 原始金额
         uint256 amount; // 金额
         uint256 deblock; // 解锁数量
         uint256 time; // 购买时间
+        uint256 currency; // 购买币种
     }
 
     string name; // 预售名称
@@ -190,9 +192,11 @@ contract IDO is Ownable {
         _balances.push(
             Balance(
                 msg.sender,
+                value,
                 lkkAmount,
                 lkkAmount - lockLkkAmount,
-                block.timestamp
+                block.timestamp,
+                0
             )
         );
         return true;
@@ -230,9 +234,11 @@ contract IDO is Ownable {
         _balances.push(
             Balance(
                 msg.sender,
+                usdtAmount,
                 lkkAmount,
                 lkkAmount - lockLkkAmount,
-                block.timestamp
+                block.timestamp,
+                1
             )
         );
 
@@ -256,7 +262,9 @@ contract IDO is Ownable {
                 if (total <= amount) {
                     _balances[i].deblock = _balances[i].amount;
                 } else {
-                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
+                    _balances[i].deblock =
+                        _balances[i].deblock +
+                        (total - amount); // 解锁一部分
                     break;
                 }
             }
@@ -314,10 +322,7 @@ contract IDO is Ownable {
         lockTime = _lockTime;
     }
 
-    function updateDeblockTime(uint256 _deblockTime)
-        public
-        onlyOwner
-    {
+    function updateDeblockTime(uint256 _deblockTime) public onlyOwner {
         deblockTime = _deblockTime;
     }
 

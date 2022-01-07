@@ -6,6 +6,7 @@ describe("IDO", function () {
     const idoSigner = ethers.provider.getSigner(0);
     const otherSigner = ethers.provider.getSigner(1);
     const userSigner = ethers.provider.getSigner(2);
+    
     const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
     const userUsdtAmount = 1000000000000
     const totalSupplyMax = presellMax + "000"
