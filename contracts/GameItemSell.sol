@@ -83,14 +83,8 @@ contract GameItemSell is Ownable {
         require(endTime >= block.timestamp, "IDO: EXPIRED"); // 预售时间已结束
         require(beginTime <= block.timestamp, "IDO: TOO EARLY"); // 预售时间未开始
         require(pause == false, "IDO: PAUSEING"); // 暂停购买
-        require(
-            presellMax - presellTotal > perMinBuy,
-            "IDO: The surplus does not meet the word purchase minimum"
-        ); // 剩余量已小于单次最低购买
-        require(
-            presellTotal + count <= presellMax,
-            "IDO: presellTotal must less than presellMax"
-        ); // 不能超过预售数量
+        require(presellMax - presellTotal > perMinBuy, "IDO: The surplus does not meet the word purchase minimum"); // 剩余量已小于单次最低购买
+        require(presellTotal + count <= presellMax, "IDO: presellTotal must less than presellMax"); // 不能超过预售数量
         require(count <= perMaxBuy, "IDO: lkkAmount must less than perMaxBuy"); // 单次购买必须小于最大购买
         require(count >= perMinBuy, "IDO: lkkAmount must more than perMinBuy"); // 单次购买最少购买
         _;
@@ -126,11 +120,7 @@ contract GameItemSell is Ownable {
     }
 
     // 传入原生币数量，能换取多少个游戏道具
-    function getGameItemByOriToken(uint256 amount)
-        public
-        view
-        returns (uint256)
-    {
+    function getGameItemByOriToken(uint256 amount) public view returns (uint256) {
         return amount / oriTokenToGameItem;
     }
 
@@ -145,33 +135,21 @@ contract GameItemSell is Ownable {
     }
 
     // 使用原生币购买游戏道具
-    function buyWithOriToken()
-        external
-        payable
-        virtual
-        ensure(msg.value / oriTokenToGameItem)
-        returns (bool)
-    {
+    function buyWithOriToken() external payable virtual ensure(msg.value / oriTokenToGameItem) returns (bool) {
         uint256 count = msg.value / oriTokenToGameItem;
         uint256 actual = count * oriTokenToGameItem; // 只扣实际购买用完的
 
         // 将游戏道具给到用户
         uint256 index = 0;
         while (index < count) {
-            GameItem721(gameItemAddress).transferFrom(
-                gameItemSupply,
-                msg.sender,
-                presellTotal + index
-            );
+            GameItem721(gameItemAddress).transferFrom(gameItemSupply, msg.sender, presellTotal + index);
             index++;
         }
 
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length)
-                ? (actual - curSum)
-                : ((actual * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             payees[i].target.transfer(curAmount);
             curSum += curAmount;
         }
@@ -182,37 +160,22 @@ contract GameItemSell is Ownable {
     }
 
     // 使用usdt购买lkk
-    function buyWithUSDT(uint256 usdtAmount)
-        external
-        virtual
-        ensure(usdtAmount / usdtToGameItem)
-        returns (bool)
-    {
+    function buyWithUSDT(uint256 usdtAmount) external virtual ensure(usdtAmount / usdtToGameItem) returns (bool) {
         uint256 count = usdtAmount / usdtToGameItem;
         uint256 actual = count * usdtToGameItem; // 只扣实际购买用完的
 
         // 将游戏道具给到用户
         uint256 index = 0;
         while (index < count) {
-            GameItem721(gameItemAddress).transferFrom(
-                gameItemSupply,
-                msg.sender,
-                presellTotal + index
-            );
+            GameItem721(gameItemAddress).transferFrom(gameItemSupply, msg.sender, presellTotal + index);
             index++;
         }
 
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length)
-                ? (actual - curSum)
-                : ((actual * payees[i].percentage) / 100);
-            TetherERC20(usdtAddress).transferFrom(
-                msg.sender,
-                payees[i].target,
-                curAmount
-            );
+            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            TetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 
@@ -222,37 +185,22 @@ contract GameItemSell is Ownable {
     }
 
     // 使用usdt购买lkk
-    function buyWithLkk(uint256 lkkAmount)
-        external
-        virtual
-        ensure(lkkAmount / lkkToGameItem)
-        returns (bool)
-    {
+    function buyWithLkk(uint256 lkkAmount) external virtual ensure(lkkAmount / lkkToGameItem) returns (bool) {
         uint256 count = lkkAmount / lkkToGameItem;
         uint256 actual = count * lkkToGameItem; // 只扣实际购买用完的
 
         // 将游戏道具给到用户
         uint256 index = 0;
         while (index < count) {
-            GameItem721(gameItemAddress).transferFrom(
-                gameItemSupply,
-                msg.sender,
-                presellTotal + index
-            );
+            GameItem721(gameItemAddress).transferFrom(gameItemSupply, msg.sender, presellTotal + index);
             index++;
         }
 
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length)
-                ? (actual - curSum)
-                : ((actual * payees[i].percentage) / 100);
-            TetherERC20(lkkAddress).transferFrom(
-                msg.sender,
-                payees[i].target,
-                curAmount
-            );
+            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            TetherERC20(lkkAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 
@@ -291,18 +239,12 @@ contract GameItemSell is Ownable {
     }
 
     function updateBeginTime(uint256 _beginTime) public onlyOwner {
-        require(
-            _beginTime >= block.timestamp,
-            "IDO: BeginTime shoud  greater than current time"
-        );
+        require(_beginTime >= block.timestamp, "IDO: BeginTime shoud  greater than current time");
         beginTime = _beginTime;
     }
 
     function updateEndtime(uint256 _endTime) public onlyOwner {
-        require(
-            _endTime >= block.timestamp,
-            "IDO: endTime shoud  greater than current time"
-        );
+        require(_endTime >= block.timestamp, "IDO: endTime shoud  greater than current time");
         endTime = _endTime;
     }
 
@@ -310,10 +252,7 @@ contract GameItemSell is Ownable {
         pause = _pause;
     }
 
-    function updateOriTokenToGameItem(uint256 _oriTokenToGameItem)
-        public
-        onlyOwner
-    {
+    function updateOriTokenToGameItem(uint256 _oriTokenToGameItem) public onlyOwner {
         oriTokenToGameItem = _oriTokenToGameItem;
     }
 
@@ -325,22 +264,13 @@ contract GameItemSell is Ownable {
         lkkToGameItem = _lkkToGameItem;
     }
 
-    function updatePayees(
-        address[] calldata targets,
-        uint32[] calldata percentages
-    ) public onlyOwner {
-        require(
-            targets.length == percentages.length,
-            "IDO: targets.length should equal percentages.length"
-        );
+    function updatePayees(address[] calldata targets, uint32[] calldata percentages) public onlyOwner {
+        require(targets.length == percentages.length, "IDO: targets.length should equal percentages.length");
 
         uint256 total = 0;
         for (uint256 i = 0; i < targets.length; i++) {
             // 防止溢出攻击
-            require(
-                percentages[i] <= 100,
-                "IDO: percentages must less than 100"
-            );
+            require(percentages[i] <= 100, "IDO: percentages must less than 100");
             total += percentages[i];
         }
         require(total == 100, "IDO: percentages sum must 100");
