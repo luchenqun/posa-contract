@@ -3,44 +3,50 @@ const { ethers } = require("hardhat");
 
 describe("IDO", function () {
   it("IDO work flow test", async function () {
-    const idoSigner = ethers.provider.getSigner(0);
-    const otherSigner = ethers.provider.getSigner(1);
-    const userSigner = ethers.provider.getSigner(2);
+    const idoSigner = ethers.provider.getSigner(0); // ido部署方，我们自己
+    const issuerSigner = ethers.provider.getSigner(1); // 发行方，指北京游戏发行方
+    const userSigner = ethers.provider.getSigner(2); // 普通用户
+
+    console.log("idoSigner address:", await idoSigner.getAddress())
+    console.log("issuerSigner address:", await issuerSigner.getAddress())
+    console.log("userSigner address:", await userSigner.getAddress())
+
+    console.log("==================================== IDO Test ====================================")
 
     const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
     const userUsdtAmount = 1000000000000
     const totalSupplyMax = presellMax + "000"
 
     // Tether Deploy
-    const Tether = await ethers.getContractFactory("TetherToken", otherSigner);
+    const Tether = await ethers.getContractFactory("TetherToken", issuerSigner);
     const tether = await Tether.deploy(totalSupplyMax, "Tether", "USDT", 8);
     await tether.deployed();
-    const tetherAddress = tether.address
-    console.log("Tether Deploy", tetherAddress)
+    const usdtAddress = tether.address
+    console.log("Tether Deploy", usdtAddress)
 
     // 给客户转一些usdt，用户能够用usdt在ido里面买lkk
     console.log("user approve usdt to ido")
     await tether.transfer(await userSigner.getAddress(), userUsdtAmount)
 
     //LKK Deploy
-    const LKK = await ethers.getContractFactory("LKKToken", otherSigner);
+    const LKK = await ethers.getContractFactory("LKKToken", issuerSigner);
     const lkk = await LKK.deploy(totalSupplyMax);
     await lkk.deployed();
     const lkkAddress = lkk.address;
     console.log("LKK Deploy", lkkAddress)
 
     // balanceOf
-    let balance = await lkk.balanceOf(await otherSigner.getAddress())
-    console.log("lkk balanceOf ", await otherSigner.getAddress(), balance.toString())
+    let balance = await lkk.balanceOf(await issuerSigner.getAddress())
+    console.log("lkk balanceOf ", await issuerSigner.getAddress(), balance.toString())
 
     // IDO Deploy
     const IDO = await ethers.getContractFactory("IDO", idoSigner);
     const now = parseInt(new Date().getTime() / 1000);
     let name = "IDO #01",
       // presellMax = "1000000000000000000000000000000000",
-      usdtAddress = tetherAddress,
+      // usdtAddress,
       // lkkAddress = lkkAddress,
-      beginTime = now,
+      beginTime = 0,
       endTime = now + 6 * 30 * 24 * 3600,
       perMinBuy = 1,
       perMaxBuy = presellMax.substring(0, 28),
@@ -65,11 +71,11 @@ describe("IDO", function () {
     console.log("lkk approve ido")
     await lkk.approve(idoAddress, ethers.constants.MaxUint256)
 
-    let allowance = await lkk.allowance(await otherSigner.getAddress(), idoAddress)
-    console.log("check allowance", await otherSigner.getAddress(), idoAddress, allowance.toString())
+    let allowance = await lkk.allowance(await issuerSigner.getAddress(), idoAddress)
+    console.log("check allowance", await issuerSigner.getAddress(), idoAddress, allowance.toString())
 
     // 存钱进ido合约
-    await ido.dposit(await otherSigner.getAddress(), presellMax)
+    await ido.dposit(await issuerSigner.getAddress(), presellMax)
 
     // 查看ido合约是否到账
     expect(await lkk.balanceOf(idoAddress)).to.equal(presellMax);
@@ -86,8 +92,81 @@ describe("IDO", function () {
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(await userSigner.getAddress()))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(await userSigner.getAddress()))
 
+    // 解锁100个Lkk币
     console.log("before deblockLkk amount", await lkk.balanceOf(await userSigner.getAddress()))
     await ido.connect(userSigner).deblockLkk(100)
     console.log("after deblockLkk amount", await lkk.balanceOf(await userSigner.getAddress()))
+
+    console.log("==================================== GameItemSell Test ====================================")
+    // 部署一个ERC721的游戏道具合约
+    const GameItem = await ethers.getContractFactory("GameItem", issuerSigner);
+    const gameItem = await GameItem.deploy();
+    await gameItem.deployed();
+    const gameItemAddress = gameItem.address;
+    console.log("GameItem Deploy", gameItemAddress)
+
+    // 生产5个游戏道具，到时候用户用原生币，usdt, lkk 分别尝试去购买
+    for (let i = 0; i < 5; i++) {
+      await gameItem.safeMint(await issuerSigner.getAddress(), `https://example.com/${i}.json`)
+    }
+
+    // 部署一个预售游戏道具合约
+    // IDO Deploy
+    const GameItemSell = await ethers.getContractFactory("GameItemSell", idoSigner);
+    let gameItemSell = null;
+    let oriTokenToGameItem = 1024,
+      usdtToGameItem = 2048,
+      lkkToGameItem = 4092;
+    {
+      // 参数顺序
+      // usdtAddress lkkAddress gameItemAddress gameItemSupply : presellMax beginTime endTime perMinBuy perMaxBuy limitBuy oriTokenToGameItem usdtToGameItem lkkToGameItem
+      const now = parseInt(new Date().getTime() / 1000);
+      let
+        presellMax = "100000000",
+        beginTime = 0,
+        endTime = now + 6 * 30 * 24 * 3600,
+        perMinBuy = "1",
+        perMaxBuy = "100",
+        limitBuy = "10000";
+      const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem]
+      gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, await issuerSigner.getAddress(), params);
+    }
+    await gameItemSell.deployed();
+    const gameItemSellAddress = gameItemSell.address
+    console.log("GameItemSell Deploy", gameItemSellAddress)
+
+    // 道具提供方给 gameItemSell 合约授权，这样 gameItemSell 就能把道具转移给用户了
+    console.log("issuerSigner approve gameItemSell")
+    await gameItem.setApprovalForAll(gameItemSellAddress, true)
+
+    // 用户用usdt给gameItemSell合约授权
+    console.log("user approve usdt to gameItemSell")
+    await tether.connect(userSigner).approve(gameItemSellAddress, ethers.constants.MaxUint256)
+
+    // 用户用lkk给gameItemSell合约授权
+    console.log("user approve lkk to gameItemSell")
+    await lkk.connect(userSigner).approve(gameItemSellAddress, ethers.constants.MaxUint256)
+
+    // 购买测试
+    {
+      let tokenId = 0; // GameItem 索引从0开始
+
+      // 用户使用原生币购买道具
+      console.log("before buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
+      await gameItemSell.connect(userSigner).buyWithOriToken({ value: oriTokenToGameItem + 1 })
+      console.log("after buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
+      tokenId++;
+
+      console.log("before buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
+      await gameItemSell.connect(userSigner).buyWithUSDT(usdtToGameItem + 1)
+      console.log("after buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
+      tokenId++;
+
+      console.log("before buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
+      await gameItemSell.connect(userSigner).buyWithLkk(lkkToGameItem + 1)
+      console.log("after buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
+      tokenId++;
+
+    }
   });
 });

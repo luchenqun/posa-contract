@@ -178,7 +178,7 @@ contract IDO is Ownable {
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length)
-                ? (lkkAmount - curSum)
+                ? (value - curSum)
                 : ((value * payees[i].percentage) / 100);
             payees[i].target.transfer(curAmount);
             curSum += curAmount;
@@ -287,6 +287,21 @@ contract IDO is Ownable {
                 ? (_balances[i].amount - _balances[i].deblock)
                 : 0;
         }
+        return total;
+    }
+
+    // 查询用户已经解锁了多少
+    function deblockBalanceOf(address src) public view returns (uint256) {
+        uint256 total = 0;
+        for (uint256 i = 0; i < _balances.length; i++) {
+            total += _balances[i].target == src ? _balances[i].deblock : 0;
+        }
+        return total;
+    }
+
+    // 可解锁LKK数量
+    function canDeblockBalanceOf(address src) public view returns (uint256) {
+        uint256 total = 0;
         return total;
     }
 
