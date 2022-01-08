@@ -278,7 +278,10 @@ contract IDO is Ownable {
             } else {
                 uint256 releaseAmount = (balance.amount * balance.releaseRatio) / 100; // 当时买了时候立马释放金额，为什么不用目前的 releaseRatio 呢？因为管理员可能会更改这个值
                 uint256 deblockAmount = releaseAmount + ((balance.amount - releaseAmount) / deblockCount) * curDeblockCount; // 总共到现在能解锁多少
-                amount = (deblockAmount - balance.deblock);
+                // 有可能因为更新锁定期解锁时长参数，导致已经解锁的比目前算出来能解锁的还要多
+                if (deblockAmount > balance.deblock) {
+                    amount = (deblockAmount - balance.deblock);
+                }
             }
         }
         return amount;

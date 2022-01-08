@@ -80,13 +80,13 @@ contract GameItemSell is Ownable {
 
     // 购买限制
     modifier ensure(uint256 count) {
-        require(endTime >= block.timestamp, "IDO: EXPIRED"); // 预售时间已结束
-        require(beginTime <= block.timestamp, "IDO: TOO EARLY"); // 预售时间未开始
-        require(pause == false, "IDO: PAUSEING"); // 暂停购买
-        require(presellMax - presellTotal > perMinBuy, "IDO: The surplus does not meet the word purchase minimum"); // 剩余量已小于单次最低购买
-        require(presellTotal + count <= presellMax, "IDO: presellTotal must less than presellMax"); // 不能超过预售数量
-        require(count <= perMaxBuy, "IDO: lkkAmount must less than perMaxBuy"); // 单次购买必须小于最大购买
-        require(count >= perMinBuy, "IDO: lkkAmount must more than perMinBuy"); // 单次购买最少购买
+        require(endTime >= block.timestamp, "GameItemSell: EXPIRED"); // 预售时间已结束
+        require(beginTime <= block.timestamp, "GameItemSell: TOO EARLY"); // 预售时间未开始
+        require(pause == false, "GameItemSell: PAUSEING"); // 暂停购买
+        require(presellMax - presellTotal > perMinBuy, "GameItemSell: The surplus does not meet the word purchase minimum"); // 剩余量已小于单次最低购买
+        require(presellTotal + count <= presellMax, "GameItemSell: presellTotal must less than presellMax"); // 不能超过预售数量
+        require(count <= perMaxBuy, "GameItemSell: count must less than perMaxBuy"); // 单次购买必须小于最大购买
+        require(count >= perMinBuy, "GameItemSell: count must more than perMinBuy"); // 单次购买最少购买
         _;
     }
 
@@ -239,12 +239,12 @@ contract GameItemSell is Ownable {
     }
 
     function updateBeginTime(uint256 _beginTime) public onlyOwner {
-        require(_beginTime >= block.timestamp, "IDO: BeginTime shoud  greater than current time");
+        require(_beginTime >= block.timestamp, "GameItemSell: BeginTime shoud  greater than current time");
         beginTime = _beginTime;
     }
 
     function updateEndtime(uint256 _endTime) public onlyOwner {
-        require(_endTime >= block.timestamp, "IDO: endTime shoud  greater than current time");
+        require(_endTime >= block.timestamp, "GameItemSell: endTime shoud  greater than current time");
         endTime = _endTime;
     }
 
@@ -265,15 +265,15 @@ contract GameItemSell is Ownable {
     }
 
     function updatePayees(address[] calldata targets, uint32[] calldata percentages) public onlyOwner {
-        require(targets.length == percentages.length, "IDO: targets.length should equal percentages.length");
+        require(targets.length == percentages.length, "GameItemSell: targets.length should equal percentages.length");
 
         uint256 total = 0;
         for (uint256 i = 0; i < targets.length; i++) {
             // 防止溢出攻击
-            require(percentages[i] <= 100, "IDO: percentages must less than 100");
+            require(percentages[i] <= 100, "GameItemSell: percentages must less than 100");
             total += percentages[i];
         }
-        require(total == 100, "IDO: percentages sum must 100");
+        require(total == 100, "GameItemSell: percentages sum must 100");
 
         delete payees;
         for (uint256 i = 0; i < targets.length; i++) {

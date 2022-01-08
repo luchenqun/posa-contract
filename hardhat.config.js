@@ -37,6 +37,13 @@ module.exports = {
   },
   defaultNetwork: "hardhat", // hardhat localhost
   networks: {
+    hardhat: {
+      accounts: [
+        { privateKey: "f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769", balance: "100000000000000000000000000000000000000000000000000000" },
+        { privateKey: "95e06fa1a8411d7f6693f486f0f450b122c58feadbcee43fbd02e13da59395d5", balance: "100000000000000000000000000000000000000000000000000000" },
+        { privateKey: "322673135bc119c82300450aed4f29373c06926f02a03f15d31cac3db1ee7716", balance: "100000000000000000000000000000000000000000000000000000" }
+      ],
+    },
     localhost: {
       url: "http://127.0.0.1:40000",
       chainId: 1024,
