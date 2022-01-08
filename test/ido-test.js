@@ -17,8 +17,7 @@ describe("IDO", function () {
     console.log("==================================== IDO Test ====================================")
 
     const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
-    const userUsdtAmount = "10000000000000000000000"
-    const userLkkAmount = "10000000000000000000000"
+    const userUsdtAmount = "100000000"
     const totalSupplyMax = presellMax + "000"
 
     // Tether Deploy
@@ -38,10 +37,6 @@ describe("IDO", function () {
     await lkk.deployed();
     const lkkAddress = lkk.address;
     console.log("LKK Deploy", lkkAddress)
-
-    // 给客户转一些lkk，用户能够用lkk在gameItemSell里面买游戏道具
-    console.log("transfer some lkk to user")
-    await lkk.transfer(userSignerAddress, userLkkAmount)
 
     // balanceOf
     let balance = await lkk.balanceOf(issuerSignerAddress)
@@ -92,6 +87,7 @@ describe("IDO", function () {
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     await ido.connect(userSigner).buyWithOriToken({ value: 10 })
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
+    console.log("balanceDetail 0", await ido.balanceDetail(userSignerAddress, 0))
 
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
@@ -99,15 +95,16 @@ describe("IDO", function () {
     await ido.connect(userSigner).buyWithUSDT(100)
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
+    console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
 
     // 更新封闭期时长，让其可以立马解锁一部分
     await ido.connect(idoSigner).updateLockTime(0);
 
-    // 获取用户可解锁的数量，应该等于 未解锁之和/deblockCount
+    // 获取用户可解锁的数量，应该等于 未解锁之和/deblockCount， (10 * 100 + 100 * 10) * 0.9 / 9 == 200
     let canDeblockBalance = await ido.canDeblockBalanceOf(userSignerAddress)
     console.log("canDeblockBalance", canDeblockBalance)
 
-    // 解锁100个Lkk币
+    // 解锁能解锁的所有Lkk币
     console.log("before deblockLkk amount", await lkk.balanceOf(userSignerAddress))
     await ido.connect(userSigner).deblockLkk(canDeblockBalance)
     console.log("after deblockLkk amount", await lkk.balanceOf(userSignerAddress))
@@ -129,9 +126,9 @@ describe("IDO", function () {
     // IDO Deploy
     const GameItemSell = await ethers.getContractFactory("GameItemSell", idoSigner);
     let gameItemSell = null;
-    let oriTokenToGameItem = 1024,
-      usdtToGameItem = 2048,
-      lkkToGameItem = 4092;
+    let oriTokenToGameItem = 10,
+      usdtToGameItem = 20,
+      lkkToGameItem = 40;
     {
       // 参数顺序
       // usdtAddress lkkAddress gameItemAddress gameItemSupply : presellMax beginTime endTime perMinBuy perMaxBuy limitBuy oriTokenToGameItem usdtToGameItem lkkToGameItem

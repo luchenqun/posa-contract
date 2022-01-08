@@ -17,11 +17,11 @@ import "./LKKToken.sol";
 // √ 9、预售合约Owner的存入（deposit）预售币种的功能：不接收预售币种以外的token存入
 // √ 10、预售合约Owner在预售期结束后提取（withdraw）或销毁（burn）合约未售出的剩余数量的功能
 // √ 11、变更合约Owner的TransferOwnership功能
-// 12、处理预售交易订单，向用户单次交易订单转出10%币种，并记录时间戳，将剩余90%锁仓在预售合约里，解锁封闭期为n天，每张订单在n天后按每次解锁间隔天数m天、按x%比例解锁（最后一次比例小于x%，按实际比例解锁），用户可通过claim方式自行提取已解锁的数量的功能
-// 13、用户地址当前可提取（已解锁）数量的查询
-// 14、用户地址当前剩余锁仓量的查询
-// 15、用户提取已解锁数量的功能，每次提取的数量不可超过当前可提取数量，提取后更新（扣减）可提取数量的值
-// 16、用户购买方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]），用户解锁提取方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]）
+// √ 12、处理预售交易订单，向用户单次交易订单转出10%币种，并记录时间戳，将剩余90%锁仓在预售合约里，解锁封闭期为n天，每张订单在n天后按每次解锁间隔天数m天、按x%比例解锁（最后一次比例小于x%，按实际比例解锁），用户可通过claim方式自行提取已解锁的数量的功能
+// √ 13、用户地址当前可提取（已解锁）数量的查询
+// √ 14、用户地址当前剩余锁仓量的查询
+// √ 15、用户提取已解锁数量的功能，每次提取的数量不可超过当前可提取数量，提取后更新（扣减）可提取数量的值
+// √ 16、用户购买方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]），用户解锁提取方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]）
 
 // 一些设计
 // 1. 购买立即释放比例下单后不随系统的释放比例更新而更新
@@ -282,6 +282,19 @@ contract IDO is Ownable {
             }
         }
         return amount;
+    }
+
+    // 用户的订单数目
+    function balanceLength(address src) public view returns (uint256) {
+        Balance[] memory _balances = balances[src];
+        return _balances.length;
+    }
+
+    // 用户的订单详情
+    function balanceDetail(address src, uint256 i) public view returns (Balance memory) {
+        Balance[] memory _balances = balances[src];
+        require(_balances.length > i, "IDO: balances length shoud greater than index"); // 最多1s能解锁一次
+        return _balances[i];
     }
 
     function updatePresellMax(uint256 _presellMax) public onlyOwner {
