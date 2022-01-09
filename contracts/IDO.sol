@@ -208,7 +208,7 @@ contract IDO is Ownable {
             if (curDeblock > 0) {
                 total += curDeblock;
                 if (total <= amount) {
-                    _balances[i].deblock = _balances[i].amount;
+                    _balances[i].deblock = _balances[i].deblock + curDeblock;
                 } else {
                     _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
                     break;
