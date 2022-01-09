@@ -265,7 +265,7 @@ contract IDO is Ownable {
     // 单条(用户单个订单)可解锁LKK数量
     function canDeblockItemBalance(Balance memory balance) public view returns (uint256) {
         uint256 amount = 0;
-        uint256 gapTotal = block.timestamp >= (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
+        uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
         if (gapTotal > 0) {
             uint256 gapPer = deblockTime / deblockCount;
             uint256 curDeblockCount = gapTotal / gapPer + 1;

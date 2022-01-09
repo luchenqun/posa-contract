@@ -1,6 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const sleep = time => {
+  return new Promise(resolve => setTimeout(resolve, time));
+};
+
 describe("IDO", function () {
   it("IDO work flow test", async function () {
     const idoSigner = ethers.provider.getSigner(0); // ido部署方，我们自己
@@ -98,6 +102,7 @@ describe("IDO", function () {
     console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
 
     // 更新封闭期时长，让其可以立马解锁一部分
+    await sleep(1000) // 为啥要等1s呢，因为区块出块时间精度最小是1s。如果出块间隔不足1s，那么返回能解锁的数量则为0
     await ido.connect(idoSigner).updateLockTime(0);
 
     // 获取用户可解锁的数量，应该等于 未解锁之和/deblockCount， (10 * 100 + 100 * 10) * 0.9 / 9 == 200
