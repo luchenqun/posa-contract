@@ -57,23 +57,23 @@ contract IDO is Ownable {
         uint256 releaseRatio; // 当时的解锁比例
     }
 
-    string name; // 预售名称
-    address usdtAddress; // usdt 合约
-    address lkkAddress; // lkk 合约
-    uint256 presellMax; // 预售总量
-    uint256 presellTotal; // 已售总量
-    uint256 beginTime; // 预售开始时间
-    uint256 endTime; // 预售结束时间
-    uint256 perMinBuy; // 每次最低购买
-    uint256 perMaxBuy; // 每次最大购买
-    uint256 limitBuy; // 最大购买
-    uint256 releaseRatio; // 购买释放比例
-    uint256 lockTime; // 买了之后，封闭多长时间不允许提取，单位秒
-    uint256 deblockTime; // 解锁时间长度，单位秒
-    uint256 deblockCount; // 在 deblockTime 可线性解锁多少次
-    uint256 oriTokenToLkkRation; // 原生 token 兑换 lkk 比例
-    uint256 usdtToLkkRation; // usdt 兑换 lkk比例
-    bool pause; // 预售暂停
+    string public name; // 预售名称
+    address public usdtAddress; // usdt 合约
+    address public lkkAddress; // lkk 合约
+    uint256 public presellMax; // 预售总量
+    uint256 public presellTotal; // 已售总量
+    uint256 public beginTime; // 预售开始时间
+    uint256 public endTime; // 预售结束时间
+    uint256 public perMinBuy; // 每次最低购买
+    uint256 public perMaxBuy; // 每次最大购买
+    uint256 public limitBuy; // 最大购买
+    uint256 public releaseRatio; // 购买释放比例
+    uint256 public lockTime; // 买了之后，封闭多长时间不允许提取，单位秒
+    uint256 public deblockTime; // 解锁时间长度，单位秒
+    uint256 public deblockCount; // 在 deblockTime 可线性解锁多少次
+    uint256 public oriTokenToLkkRation; // 原生 token 兑换 lkk 比例
+    uint256 public usdtToLkkRation; // usdt 兑换 lkk比例
+    bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
 

@@ -54,25 +54,25 @@ contract GameItemSell is Ownable {
         uint256 currency; // 购买币种
     }
 
-    address usdtAddress; // usdt 合约
-    address lkkAddress; // lkk 合约
-    address gameItemAddress; // 游戏道具(ERC721)合约
-    address gameItemSupply; // 游戏道具供应方
-    uint256 presellMax; // 预售总量
-    uint256 presellTotal; // 已售总量
-    uint256 beginTime; // 预售开始时间
-    uint256 endTime; // 预售结束时间
-    uint256 perMinBuy; // 每次最低购买多少个游戏道具
-    uint256 perMaxBuy; // 每次最大购买多少个游戏道具
-    uint256 limitBuy; // 最多购买多少个游戏道具
+    address public usdtAddress; // usdt 合约
+    address public lkkAddress; // lkk 合约
+    address public gameItemAddress; // 游戏道具(ERC721)合约
+    address public gameItemSupply; // 游戏道具供应方
+    uint256 public presellMax; // 预售总量
+    uint256 public presellTotal; // 已售总量
+    uint256 public beginTime; // 预售开始时间
+    uint256 public endTime; // 预售结束时间
+    uint256 public perMinBuy; // 每次最低购买多少个游戏道具
+    uint256 public perMaxBuy; // 每次最大购买多少个游戏道具
+    uint256 public limitBuy; // 最多购买多少个游戏道具
 
-    uint256 oriTokenToGameItem; // 需要多少原生 token 购买一个道具
-    uint256 usdtToGameItem; // 需要多少原生 usdt 购买一个道具
-    uint256 lkkToGameItem; // 需要多少原生 LKK 购买一个道具
+    uint256 public oriTokenToGameItem; // 需要多少原生 token 购买一个道具
+    uint256 public usdtToGameItem; // 需要多少原生 usdt 购买一个道具
+    uint256 public lkkToGameItem; // 需要多少原生 LKK 购买一个道具
 
-    bool pause; // 预售暂停
+    bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
-    Balance[] public _balances; // 用户购买lkk查询
+    mapping(address => Balance[]) public balances; // 户购买lkk查询
 
     fallback() external payable {}
 
@@ -155,6 +155,7 @@ contract GameItemSell is Ownable {
         }
 
         presellTotal += count;
+        Balance[] storage _balances = balances[msg.sender];
         _balances.push(Balance(msg.sender, actual, count, block.timestamp, 0));
         return true;
     }
@@ -180,6 +181,7 @@ contract GameItemSell is Ownable {
         }
 
         presellTotal += count;
+        Balance[] storage _balances = balances[msg.sender];
         _balances.push(Balance(msg.sender, actual, count, block.timestamp, 1));
         return true;
     }
@@ -205,6 +207,7 @@ contract GameItemSell is Ownable {
         }
 
         presellTotal += count;
+        Balance[] storage _balances = balances[msg.sender];
         _balances.push(Balance(msg.sender, actual, count, block.timestamp, 2));
         return true;
     }
@@ -212,8 +215,9 @@ contract GameItemSell is Ownable {
     // 查询用户购买了多少
     function balanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
+        Balance[] memory _balances = balances[src];
         for (uint256 i = 0; i < _balances.length; i++) {
-            total += _balances[i].target == src ? _balances[i].count : 0;
+            total += _balances[i].count;
         }
         return total;
     }
