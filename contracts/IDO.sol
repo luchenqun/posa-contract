@@ -21,7 +21,7 @@ import "./LKKToken.sol";
 // √ 13、用户地址当前可提取（已解锁）数量的查询
 // √ 14、用户地址当前剩余锁仓量的查询
 // √ 15、用户提取已解锁数量的功能，每次提取的数量不可超过当前可提取数量，提取后更新（扣减）可提取数量的值
-// √ 16、用户购买方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]），用户解锁提取方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]）
+// 16、用户购买方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]），用户解锁提取方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]）
 
 // 一些设计
 // 1. 购买立即释放比例下单后不随系统的释放比例更新而更新
@@ -42,6 +42,11 @@ abstract contract TetherERC20 {
 }
 
 contract IDO is Ownable {
+    enum Currency {
+        OriToken,
+        USDT
+    }
+
     // 收款对象结构体
     struct Payee {
         address payable target; // 收款人
@@ -53,7 +58,7 @@ contract IDO is Ownable {
         uint256 amount; // 金额
         uint256 deblock; // 解锁数量
         uint256 time; // 购买时间
-        uint256 currency; // 购买币种
+        Currency currency; // 购买币种
         uint256 releaseRatio; // 当时的解锁比例
     }
 
@@ -166,7 +171,7 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, 0, releaseRatio));
+        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, Currency.OriToken, releaseRatio));
         return true;
     }
 
@@ -189,7 +194,7 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, 1, releaseRatio));
+        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, Currency.USDT, releaseRatio));
 
         return true;
     }

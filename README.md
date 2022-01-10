@@ -30,6 +30,7 @@ npx hardhat help
 ```
 
 # Ethereum 私链搭建
+使用我发的geth.rar压缩包搭建。
 
 # EthTool使用
 

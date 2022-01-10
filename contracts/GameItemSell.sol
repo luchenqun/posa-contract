@@ -41,6 +41,11 @@ abstract contract GameItem721 {
 }
 
 contract GameItemSell is Ownable {
+    enum Currency {
+        OriToken,
+        USDT,
+        Lkk
+    }
     // 收款对象结构体
     struct Payee {
         address payable target; // 收款人
@@ -51,7 +56,7 @@ contract GameItemSell is Ownable {
         uint256 origin; // 原始金额
         uint256 count; // 购买个数
         uint256 time; // 购买时间
-        uint256 currency; // 购买币种
+        Currency currency; // 购买币种
     }
 
     address public usdtAddress; // usdt 合约
@@ -156,7 +161,7 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, 0));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.OriToken));
         return true;
     }
 
@@ -182,7 +187,7 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, 1));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.USDT));
         return true;
     }
 
@@ -208,7 +213,7 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, 2));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.Lkk));
         return true;
     }
 
