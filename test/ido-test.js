@@ -184,5 +184,43 @@ describe("IDO", function () {
       console.log("after buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
     }
+
+    console.log("==================================== PreSell Test ====================================")
+    const address1 = "0xeeeee5d1d01f99d760f9da356e683cc1f29f2f81";
+    const address2 = "0xfffff01adb78f8951aa28cf06ceb9b8898a29f50";
+    const PreSell = await ethers.getContractFactory("PreSell", idoSigner);
+    let preSell = null;
+    {
+      // 参数顺序
+      // _usdtAddress targets[] percentages[] presellMax beginTime endTime perMinBuy perMaxBuy limitBuy
+      const now = parseInt(new Date().getTime() / 1000);
+      let
+        presellMax = "1000000000000000000000000000000000000000000000000000000",
+        beginTime = 0,
+        endTime = now + 6 * 30 * 24 * 3600,
+        perMinBuy = "1",
+        perMaxBuy = "10000000000000000000000000000000000",
+        limitBuy = "100000000000000000000000000000000000000";
+      const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy]
+      preSell = await PreSell.deploy(usdtAddress, [address1, address2], [20, 80], params);
+    }
+
+    // 购买测试
+    {
+      // 用户使用原生币购买道具
+      await preSell.connect(userSigner).buyWithOriToken({ value: 1000 })
+
+      // userSigner 给 preSell 合约授权，这样 preSell 就能把钱转给收钱人了
+      console.log("userSigner approve tether to preSell")
+      await tether.connect(userSigner).approve(preSell.address, ethers.constants.MaxUint256)
+
+      console.log("before buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
+      console.log("before buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
+      console.log("before buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))
+      await preSell.connect(userSigner).buyWithUSDT(880)
+      console.log("after buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
+      console.log("after buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
+      console.log("after buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))
+    }
   });
 });
