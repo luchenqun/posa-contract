@@ -89,14 +89,19 @@ describe("IDO", function () {
 
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).buyWithOriToken({ value: 10 })
+    console.log("购买LKK原生币前，余额",await userSigner.getBalance())
+    await ido.connect(userSigner).buyWithOriToken('orderId_01',{value:10});
+    console.log("购买LKK原生币后，余额",await userSigner.getBalance());
+    console.log("购买人地址：",await ido.getBuyerByOrderId("orderId_01"));
+
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("balanceDetail 0", await ido.balanceDetail(userSignerAddress, 0))
 
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("before buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).buyWithUSDT(100)
+    await ido.connect(userSigner).buyWithUSDT(100,'orderId_02')
+    console.log("购买人地址：",await ido.getBuyerByOrderId("orderId_02"));
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
     console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
@@ -111,7 +116,8 @@ describe("IDO", function () {
 
     // 解锁能解锁的所有Lkk币
     console.log("before deblockLkk amount", await lkk.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).deblockLkk(canDeblockBalance)
+    await ido.connect(userSigner).deblockLkk(canDeblockBalance,'orderId_03')
+    console.log("解锁人地址：",await ido.getUnLockerByOrderId("orderId_03"));
     console.log("after deblockLkk amount", await lkk.balanceOf(userSignerAddress))
 
     console.log("==================================== GameItemSell Test ====================================")

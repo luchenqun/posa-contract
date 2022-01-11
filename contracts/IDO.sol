@@ -60,6 +60,7 @@ contract IDO is Ownable {
         uint256 time; // 购买时间
         Currency currency; // 购买币种
         uint256 releaseRatio; // 当时的解锁比例
+        string orderId; //订单ID
     }
 
     string public name; // 预售名称
@@ -81,6 +82,8 @@ contract IDO is Ownable {
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
+    mapping(string => address[]) public buyRecords; //订单ID-用户购买记录
+    mapping(string => address[]) public unlockRecords; //订单ID-用户解锁记录
 
     fallback() external payable {}
 
@@ -153,7 +156,7 @@ contract IDO is Ownable {
     }
 
     // 使用原生币购买lkk
-    function buyWithOriToken() external payable virtual ensure(msg.value * oriTokenToLkkRation) returns (bool) {
+    function buyWithOriToken(string memory orderId) external payable virtual ensure(msg.value * oriTokenToLkkRation) returns (bool) {
         uint256 value = msg.value;
         uint256 lkkAmount = oriTokenToLkkRation * value;
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
@@ -171,12 +174,13 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, Currency.OriToken, releaseRatio));
+        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, Currency.OriToken, releaseRatio, orderId));
+        addBuyRecord(orderId);
         return true;
     }
 
     // 使用usdt购买lkk
-    function buyWithUSDT(uint256 usdtAmount) external virtual ensure(usdtToLkkRation * usdtAmount) returns (bool) {
+    function buyWithUSDT(uint256 usdtAmount, string memory orderId) external virtual ensure(usdtToLkkRation * usdtAmount) returns (bool) {
         uint256 lkkAmount = usdtToLkkRation * usdtAmount;
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
 
@@ -194,13 +198,13 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, Currency.USDT, releaseRatio));
-
+        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, Currency.USDT, releaseRatio, orderId));
+        addBuyRecord(orderId);
         return true;
     }
 
     // 解锁LKK
-    function deblockLkk(uint256 amount) external virtual returns (bool) {
+    function deblockLkk(uint256 amount, string memory orderId) external virtual returns (bool) {
         uint256 canDeblockAmount = canDeblockBalanceOf(msg.sender);
         require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
         require(amount > 0, "IDO: amount shoud greater than 0");
@@ -222,8 +226,15 @@ contract IDO is Ownable {
         }
 
         LKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
-
+        address[] storage _unlockRecords = unlockRecords[orderId]; //记录订单解锁操作
+        _unlockRecords.push(msg.sender);
         return true;
+    }
+
+    //添加购买记录
+    function addBuyRecord(string memory orderId) private {
+        address[] storage _buyRecords = buyRecords[orderId];
+        _buyRecords.push(msg.sender);
     }
 
     // 查询用户购买了多少
@@ -380,5 +391,17 @@ contract IDO is Ownable {
         for (uint256 i = 0; i < targets.length; i++) {
             payees.push(Payee(payable(targets[i]), percentages[i]));
         }
+    }
+
+    //根据订单ID查询购买人
+    function getBuyerByOrderId(string memory orderId) public view returns (address[] memory) {
+        address[] memory _records = buyRecords[orderId];
+        return _records;
+    }
+
+    //根据订单ID查询解锁人
+    function getUnLockerByOrderId(string memory orderId) public view returns (address[] memory) {
+        address[] memory _records = unlockRecords[orderId];
+        return _records;
     }
 }
