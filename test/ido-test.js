@@ -5,6 +5,10 @@ const sleep = time => {
   return new Promise(resolve => setTimeout(resolve, time));
 };
 
+const orderId = () => {
+  return new Date().getTime() + parseInt(Math.random() * 1000000);
+}
+
 describe("IDO", function () {
   it("IDO work flow test", async function () {
     const idoSigner = ethers.provider.getSigner(0); // ido部署方，我们自己
@@ -92,9 +96,10 @@ describe("IDO", function () {
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("购买LKK原生币前，余额", await userSigner.getBalance())
-    await ido.connect(userSigner).buyWithOriToken('orderId_01', { value: 100000 });
+    let balanceOrderId = orderId();
+    await ido.connect(userSigner).buyWithOriToken(balanceOrderId, { value: 100000 });
+    console.log("balanceDetailByOrderId detail:", await ido.balanceDetailByOrderId(balanceOrderId))
     console.log("购买LKK原生币后，余额", await userSigner.getBalance());
-    console.log("购买人地址：", await ido.getBuyerByOrderId("orderId_01"));
 
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("balanceDetail 0", await ido.balanceDetail(userSignerAddress, 0))
@@ -102,8 +107,7 @@ describe("IDO", function () {
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("before buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).buyWithUSDT(100, 'orderId_02')
-    console.log("购买人地址：", await ido.getBuyerByOrderId("orderId_02"));
+    await ido.connect(userSigner).buyWithUSDT(100, orderId())
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
     console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
@@ -118,8 +122,9 @@ describe("IDO", function () {
 
     // 解锁能解锁的所有Lkk币
     console.log("before deblockLkk amount", await lkk.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).deblockLkk(canDeblockBalance, 'orderId_03')
-    console.log("解锁人地址：", await ido.getUnLockerByOrderId("orderId_03"));
+    const deblockOrderId = orderId()
+    await ido.connect(userSigner).deblockLkk(canDeblockBalance, deblockOrderId)
+    console.log("deblockDetailByOrderId detail:", await ido.deblockDetailByOrderId(deblockOrderId))
     console.log("after deblockLkk amount", await lkk.balanceOf(userSignerAddress))
 
     console.log("==================================== GameItemSell Test ====================================")
@@ -178,17 +183,17 @@ describe("IDO", function () {
 
       // 用户使用原生币购买道具
       console.log("before buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithOriToken({ value: oriTokenToGameItem + 1 })
+      await gameItemSell.connect(userSigner).buyWithOriToken(orderId(), { value: oriTokenToGameItem + 1 })
       console.log("after buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
 
       console.log("before buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithUSDT(usdtToGameItem + 1)
+      await gameItemSell.connect(userSigner).buyWithUSDT(usdtToGameItem + 1, orderId())
       console.log("after buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
 
       console.log("before buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithLkk(lkkToGameItem + 1)
+      await gameItemSell.connect(userSigner).buyWithLkk(lkkToGameItem + 1, orderId())
       console.log("after buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
     }
@@ -216,7 +221,7 @@ describe("IDO", function () {
     // 购买测试
     {
       // 用户使用原生币购买道具
-      await preSell.connect(userSigner).buyWithOriToken({ value: 1000 })
+      await preSell.connect(userSigner).buyWithOriToken(orderId(), { value: 1000 })
 
       // userSigner 给 preSell 合约授权，这样 preSell 就能把钱转给收钱人了
       console.log("userSigner approve tether to preSell")
@@ -225,7 +230,7 @@ describe("IDO", function () {
       console.log("before buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("before buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
       console.log("before buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))
-      await preSell.connect(userSigner).buyWithUSDT(880)
+      await preSell.connect(userSigner).buyWithUSDT(880, orderId())
       console.log("after buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("after buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
       console.log("after buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))

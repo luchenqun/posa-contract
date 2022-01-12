@@ -41,6 +41,7 @@ contract GameItemSell is Ownable {
         uint256 count; // 购买个数
         uint256 time; // 购买时间
         Currency currency; // 购买币种
+        uint256 orderId; //订单ID
     }
 
     address public usdtAddress; // usdt 合约
@@ -62,6 +63,7 @@ contract GameItemSell is Ownable {
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
+    mapping(uint256 => address) public buyRecord; //订单ID-用户购买记录
 
     fallback() external payable {}
 
@@ -124,7 +126,7 @@ contract GameItemSell is Ownable {
     }
 
     // 使用原生币购买游戏道具
-    function buyWithOriToken() external payable virtual ensure(msg.value / oriTokenToGameItem) returns (bool) {
+    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value / oriTokenToGameItem) returns (bool) {
         uint256 count = msg.value / oriTokenToGameItem;
         uint256 actual = count * oriTokenToGameItem; // 只扣实际购买用完的
 
@@ -145,12 +147,14 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.OriToken));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.OriToken, orderId));
+        buyRecord[orderId] = msg.sender;
+
         return true;
     }
 
     // 使用usdt购买lkk
-    function buyWithUSDT(uint256 usdtAmount) external virtual ensure(usdtAmount / usdtToGameItem) returns (bool) {
+    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount / usdtToGameItem) returns (bool) {
         uint256 count = usdtAmount / usdtToGameItem;
         uint256 actual = count * usdtToGameItem; // 只扣实际购买用完的
 
@@ -171,12 +175,14 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.USDT));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.USDT, orderId));
+        buyRecord[orderId] = msg.sender;
+
         return true;
     }
 
     // 使用usdt购买lkk
-    function buyWithLkk(uint256 lkkAmount) external virtual ensure(lkkAmount / lkkToGameItem) returns (bool) {
+    function buyWithLkk(uint256 lkkAmount, uint256 orderId) external virtual ensure(lkkAmount / lkkToGameItem) returns (bool) {
         uint256 count = lkkAmount / lkkToGameItem;
         uint256 actual = count * lkkToGameItem; // 只扣实际购买用完的
 
@@ -197,7 +203,9 @@ contract GameItemSell is Ownable {
 
         presellTotal += count;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.Lkk));
+        _balances.push(Balance(msg.sender, actual, count, block.timestamp, Currency.Lkk, orderId));
+        buyRecord[orderId] = msg.sender;
+
         return true;
     }
 
@@ -255,6 +263,27 @@ contract GameItemSell is Ownable {
 
     function updateLkkToGameItem(uint256 _lkkToGameItem) public onlyOwner {
         lkkToGameItem = _lkkToGameItem;
+    }
+
+    // 用户的订单详情
+    function balanceDetail(address src, uint256 i) public view returns (Balance memory) {
+        Balance[] memory _balances = balances[src];
+        require(_balances.length > i, "GameItemSell: balances length shoud greater than index");
+        return _balances[i];
+    }
+
+    // 根据订单ID查询用户的订单详情
+    function balanceDetailByOrderId(uint256 orderId) public view returns (Balance memory) {
+        Balance memory balance;
+        address src = buyRecord[orderId];
+        Balance[] memory _balances = balances[src];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            if (_balances[i].orderId == orderId) {
+                balance = _balances[i];
+                break;
+            }
+        }
+        return balance;
     }
 
     function updatePayees(address[] calldata targets, uint32[] calldata percentages) public onlyOwner {

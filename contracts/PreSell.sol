@@ -36,6 +36,7 @@ contract PreSell is Ownable {
         uint256 origin; // 原始金额
         uint256 time; // 购买时间
         Currency currency; // 购买币种
+        uint256 orderId; //订单ID
     }
 
     address public usdtAddress; // usdt 合约
@@ -50,6 +51,7 @@ contract PreSell is Ownable {
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
+    mapping(uint256 => address) public buyRecord; //订单ID-用户购买记录
 
     fallback() external payable {}
 
@@ -87,7 +89,7 @@ contract PreSell is Ownable {
     }
 
     // 使用原生币购买
-    function buyWithOriToken() external payable virtual ensure(msg.value) returns (bool) {
+    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value) returns (bool) {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
@@ -98,12 +100,13 @@ contract PreSell is Ownable {
 
         presellOriTotal += msg.value;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, msg.value, block.timestamp, Currency.OriToken));
+        _balances.push(Balance(msg.sender, msg.value, block.timestamp, Currency.OriToken, orderId));
+        buyRecord[orderId] = msg.sender;
         return true;
     }
 
     // 使用usdt购买
-    function buyWithUSDT(uint256 usdtAmount) external virtual ensure(usdtAmount) returns (bool) {
+    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount) returns (bool) {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
@@ -113,7 +116,8 @@ contract PreSell is Ownable {
         }
         presellUsdtTotal += usdtAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, usdtAmount, block.timestamp, Currency.USDT));
+        _balances.push(Balance(msg.sender, usdtAmount, block.timestamp, Currency.USDT, orderId));
+        buyRecord[orderId] = msg.sender;
         return true;
     }
 
@@ -172,5 +176,26 @@ contract PreSell is Ownable {
         for (uint256 i = 0; i < targets.length; i++) {
             payees.push(Payee(payable(targets[i]), percentages[i]));
         }
+    }
+
+    // 用户的订单详情
+    function balanceDetail(address src, uint256 i) public view returns (Balance memory) {
+        Balance[] memory _balances = balances[src];
+        require(_balances.length > i, "PreSell: balances length shoud greater than index");
+        return _balances[i];
+    }
+
+    // 根据订单ID查询用户的订单详情
+    function balanceDetailByOrderId(uint256 orderId) public view returns (Balance memory) {
+        Balance memory balance;
+        address src = buyRecord[orderId];
+        Balance[] memory _balances = balances[src];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            if (_balances[i].orderId == orderId) {
+                balance = _balances[i];
+                break;
+            }
+        }
+        return balance;
     }
 }
