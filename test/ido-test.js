@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { utils } = ethers;
 
 const sleep = time => {
   return new Promise(resolve => setTimeout(resolve, time));
@@ -7,6 +8,10 @@ const sleep = time => {
 
 const orderId = () => {
   return new Date().getTime() + parseInt(Math.random() * 1000000);
+}
+
+const toWei = (ether) => {
+  return utils.parseEther(String(ether)).toString(10)
 }
 
 describe("IDO", function () {
@@ -24,23 +29,22 @@ describe("IDO", function () {
 
     console.log("==================================== IDO Test ====================================")
 
-    const presellMax = "10000000000000000000000000000000000000000000000"
-    const userUsdtAmount = "1000000000000"
-    const totalSupplyMax = presellMax + "000"
-
     // Tether Deploy
     const Tether = await ethers.getContractFactory("BEP20USDT", issuerSigner);
     const tether = await Tether.deploy();
     await tether.deployed();
+    const userUsdtAmount = "1000000000000"
+    await tether.mint(toWei(userUsdtAmount))
     const usdtAddress = tether.address
     console.log("Tether Deploy", usdtAddress)
 
     // 给客户转一些usdt，用户能够用usdt在ido里面买lkk
     console.log("transfer some undt to user")
-    await tether.transfer(userSignerAddress, userUsdtAmount)
+    await tether.transfer(userSignerAddress, toWei(userUsdtAmount))
 
     //LKK Deploy
     const LKK = await ethers.getContractFactory("LKKToken", issuerSigner);
+    const totalSupplyMax = toWei("10000000000")
     const lkk = await LKK.deploy("Little King Kong", "LKK", totalSupplyMax, "0x10ed43c718714eb63d5aa57b78b54704e256024e", usdtAddress);
     await lkk.deployed();
     const lkkAddress = lkk.address;
@@ -54,22 +58,22 @@ describe("IDO", function () {
     const IDO = await ethers.getContractFactory("IDO", idoSigner);
     const now = parseInt(new Date().getTime() / 1000);
     let name = "IDO #01",
-      // presellMax = "1000000000000000000000000000000000",
+      presellMax = toWei("10000000000"),
       // usdtAddress,
       // lkkAddress = lkkAddress,
       beginTime = 0,
       endTime = now + 6 * 30 * 24 * 3600,
-      perMinBuy = 1,
-      perMaxBuy = presellMax.substring(0, 28),
-      limitBuy = presellMax.substring(0, 38),
-      releaseRatio = 10,
-      lockTime = 3 * 30 * 24 * 3600,
-      deblockTime = 3 * 30 * 24 * 3600,
-      deblockCount = 9,
-      oriTokenToLkkRationNumerator = 12,
+      perMinBuy = toWei("1"),
+      perMaxBuy = toWei("100000"),
+      limitBuy = toWei("100000000"),
+      releaseRatio = 0,
+      lockTime = 0,
+      deblockTime = 100 * 24 * 3600,
+      deblockCount = 100,
+      oriTokenToLkkRationNumerator = 500,
       oriTokenToLkkRationDenominator = 1,
-      usdtToLkkRationNumerator = 1,
-      usdtToLkkRationDenominator = 4;
+      usdtToLkkRationNumerator = 125,
+      usdtToLkkRationDenominator = 2;
     const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator]);
     await ido.deployed();
     const idoAddress = ido.address
@@ -97,7 +101,7 @@ describe("IDO", function () {
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("购买LKK原生币前，余额", await userSigner.getBalance())
     let balanceOrderId = orderId();
-    await ido.connect(userSigner).buyWithOriToken(balanceOrderId, { value: 100000 });
+    await ido.connect(userSigner).buyWithOriToken(balanceOrderId, { value: toWei(10) });
     console.log("balanceDetailByOrderId detail:", await ido.balanceDetailByOrderId(balanceOrderId))
     console.log("购买LKK原生币后，余额", await userSigner.getBalance());
 
@@ -107,7 +111,7 @@ describe("IDO", function () {
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("before buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).buyWithUSDT(100, orderId())
+    await ido.connect(userSigner).buyWithUSDT(toWei(1200), orderId())
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
     console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
@@ -144,9 +148,9 @@ describe("IDO", function () {
     // IDO Deploy
     const GameItemSell = await ethers.getContractFactory("GameItemSell", idoSigner);
     let gameItemSell = null;
-    let oriTokenToGameItem = 10,
-      usdtToGameItem = 20,
-      lkkToGameItem = 40;
+    let oriTokenToGameItem = toWei(0.01),
+      usdtToGameItem = toWei(100),
+      lkkToGameItem = toWei(1000);
     {
       // 参数顺序
       // usdtAddress lkkAddress gameItemAddress gameItemSupply : presellMax beginTime endTime perMinBuy perMaxBuy limitBuy oriTokenToGameItem usdtToGameItem lkkToGameItem
@@ -155,6 +159,7 @@ describe("IDO", function () {
         presellMax = "100000000",
         beginTime = 0,
         endTime = now + 6 * 30 * 24 * 3600,
+        // 下面是购买的个数，不要转为wei
         perMinBuy = "1",
         perMaxBuy = "100",
         limitBuy = "10000";
@@ -177,23 +182,27 @@ describe("IDO", function () {
     console.log("user approve lkk to gameItemSell")
     await lkk.connect(userSigner).approve(gameItemSellAddress, ethers.constants.MaxUint256)
 
+    // 给客户转一些usdt，用户能够用usdt在预售合约里面买入场券
+    console.log("transfer some lkk to user")
+    await lkk.transfer(userSignerAddress, toWei(5000))
+
     // 购买测试
     {
       let tokenId = 0; // GameItem 索引从0开始
 
       // 用户使用原生币购买道具
       console.log("before buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithOriToken(orderId(), { value: oriTokenToGameItem + 1 })
+      await gameItemSell.connect(userSigner).buyWithOriToken(orderId(), { value: oriTokenToGameItem })
       console.log("after buyWithOriToken gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
 
       console.log("before buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithUSDT(usdtToGameItem + 1, orderId())
+      await gameItemSell.connect(userSigner).buyWithUSDT(usdtToGameItem, orderId())
       console.log("after buyWithUSDT gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
 
       console.log("before buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
-      await gameItemSell.connect(userSigner).buyWithLkk(lkkToGameItem + 1, orderId())
+      await gameItemSell.connect(userSigner).buyWithLkk(lkkToGameItem, orderId())
       console.log("after buyWithLkk gameItem owner:", await gameItem.ownerOf(tokenId))
       tokenId++;
     }
@@ -208,14 +217,15 @@ describe("IDO", function () {
       // _usdtAddress targets[] percentages[] presellMax beginTime endTime perMinBuy perMaxBuy limitBuy
       const now = parseInt(new Date().getTime() / 1000);
       let
-        presellMax = "1000000000000000000000000000000000000000000000000000000",
+        presellMax = "10000",
         beginTime = 0,
         endTime = now + 6 * 30 * 24 * 3600,
+        // 下面是购买的个数，不要转为wei
         perMinBuy = "1",
-        perMaxBuy = "10000000000000000000000000000000000",
-        limitBuy = "100000000000000000000000000000000000000",
-        oriTokenToPreSell = "1024",
-        usdtToPreSell = "2048";
+        perMaxBuy = "10",
+        limitBuy = "1000",
+        oriTokenToPreSell = toWei(0.1),
+        usdtToPreSell = toWei(500);
       const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToPreSell, usdtToPreSell]
       preSell = await PreSell.deploy(usdtAddress, [address1, address2], [20, 80], params);
     }
@@ -223,7 +233,7 @@ describe("IDO", function () {
     // 购买测试
     {
       // 用户使用原生币购买道具
-      await preSell.connect(userSigner).buyWithOriToken(orderId(), { value: 1025 })
+      await preSell.connect(userSigner).buyWithOriToken(orderId(), { value: toWei(0.12) })
       console.log("preSell balanceOf: ", await preSell.balanceOf(userSignerAddress))
 
       // userSigner 给 preSell 合约授权，这样 preSell 就能把钱转给收钱人了
@@ -233,7 +243,7 @@ describe("IDO", function () {
       console.log("before buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("before buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
       console.log("before buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))
-      await preSell.connect(userSigner).buyWithUSDT(4097, orderId())
+      await preSell.connect(userSigner).buyWithUSDT(toWei(501), orderId())
       console.log("preSell balanceOf: ", await preSell.balanceOf(userSignerAddress))
       console.log("after buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("after buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
