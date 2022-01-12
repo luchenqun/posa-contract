@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
-import "./LKKToken.sol";
+import "./interfaces/ITetherERC20.sol";
 
 // 1、道具预售期设置：设置开始时间和结束时间，开始前、结束后合约不接受交易，可修改结束时间（不能早于当前时间）
 // 2、道具暂停预售设置：暂停预售，可开启暂停，可关闭暂停
@@ -16,22 +16,6 @@ import "./LKKToken.sol";
 // 8、设置收款地址：接收用户支付的代币，可查询，可修改，可设置多地址和分配比例，每个地址按比例分得入金，至少保留一个收款地址
 // 9、变更合约Owner的TransferOwnership功能
 // 10、用户购买方法中记录订单ID（字节、用于回传查询，可以不传参）及订单ID查询（返回用户地址[可行的话或交易哈希值]）
-
-abstract contract TetherERC20 {
-    function totalSupply() public view virtual returns (uint256);
-
-    function balanceOf(address who) public view virtual returns (uint256);
-
-    function transfer(address to, uint256 value) public virtual;
-
-    // 这个不返回 bool 值，太坑了
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) public virtual;
-}
-
 abstract contract GameItem721 {
     function transferFrom(
         address from,
@@ -181,7 +165,7 @@ contract GameItemSell is Ownable {
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
-            TetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            ITetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 
@@ -207,7 +191,7 @@ contract GameItemSell is Ownable {
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
-            TetherERC20(lkkAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            ITetherERC20(lkkAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 

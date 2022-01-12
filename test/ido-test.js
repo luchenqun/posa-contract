@@ -20,13 +20,13 @@ describe("IDO", function () {
 
     console.log("==================================== IDO Test ====================================")
 
-    const presellMax = "100000000000000000000000000000000000000000000000000000000000000000"
+    const presellMax = "10000000000000000000000000000000000000000000000"
     const userUsdtAmount = "100000000"
     const totalSupplyMax = presellMax + "000"
 
     // Tether Deploy
-    const Tether = await ethers.getContractFactory("TetherToken", issuerSigner);
-    const tether = await Tether.deploy(totalSupplyMax, "Tether", "USDT", 8);
+    const Tether = await ethers.getContractFactory("BEP20USDT", issuerSigner);
+    const tether = await Tether.deploy();
     await tether.deployed();
     const usdtAddress = tether.address
     console.log("Tether Deploy", usdtAddress)
@@ -37,7 +37,7 @@ describe("IDO", function () {
 
     //LKK Deploy
     const LKK = await ethers.getContractFactory("LKKToken", issuerSigner);
-    const lkk = await LKK.deploy(totalSupplyMax);
+    const lkk = await LKK.deploy("Little King Kong", "LKK", totalSupplyMax, "0x10ed43c718714eb63d5aa57b78b54704e256024e", usdtAddress);
     await lkk.deployed();
     const lkkAddress = lkk.address;
     console.log("LKK Deploy", lkkAddress)
@@ -64,7 +64,7 @@ describe("IDO", function () {
       deblockCount = 9,
       oriTokenToLkkRation = 100,
       usdtToLkkRation = 10;
-    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRation, usdtToLkkRation]);
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRation, usdtToLkkRation]);
     await ido.deployed();
     const idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)
@@ -89,10 +89,10 @@ describe("IDO", function () {
 
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
-    console.log("购买LKK原生币前，余额",await userSigner.getBalance())
-    await ido.connect(userSigner).buyWithOriToken('orderId_01',{value:10});
-    console.log("购买LKK原生币后，余额",await userSigner.getBalance());
-    console.log("购买人地址：",await ido.getBuyerByOrderId("orderId_01"));
+    console.log("购买LKK原生币前，余额", await userSigner.getBalance())
+    await ido.connect(userSigner).buyWithOriToken('orderId_01', { value: 10 });
+    console.log("购买LKK原生币后，余额", await userSigner.getBalance());
+    console.log("购买人地址：", await ido.getBuyerByOrderId("orderId_01"));
 
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("balanceDetail 0", await ido.balanceDetail(userSignerAddress, 0))
@@ -100,8 +100,8 @@ describe("IDO", function () {
     // 从ido合约用usdt买lkk
     console.log("before buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("before buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).buyWithUSDT(100,'orderId_02')
-    console.log("购买人地址：",await ido.getBuyerByOrderId("orderId_02"));
+    await ido.connect(userSigner).buyWithUSDT(100, 'orderId_02')
+    console.log("购买人地址：", await ido.getBuyerByOrderId("orderId_02"));
     console.log("after buyWithUSDT lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("after buyWithUSDT usdt amount", await tether.balanceOf(userSignerAddress))
     console.log("balanceDetail 1", await ido.balanceDetail(userSignerAddress, 1))
@@ -116,8 +116,8 @@ describe("IDO", function () {
 
     // 解锁能解锁的所有Lkk币
     console.log("before deblockLkk amount", await lkk.balanceOf(userSignerAddress))
-    await ido.connect(userSigner).deblockLkk(canDeblockBalance,'orderId_03')
-    console.log("解锁人地址：",await ido.getUnLockerByOrderId("orderId_03"));
+    await ido.connect(userSigner).deblockLkk(canDeblockBalance, 'orderId_03')
+    console.log("解锁人地址：", await ido.getUnLockerByOrderId("orderId_03"));
     console.log("after deblockLkk amount", await lkk.balanceOf(userSignerAddress))
 
     console.log("==================================== GameItemSell Test ====================================")

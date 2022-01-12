@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
-import "./LKKToken.sol";
+import "./interfaces/ILKKToken.sol";
+import "./interfaces/ITetherERC20.sol";
 
 // √ 1、预售期设置：设置开始时间和结束时间，开始前、结束后合约不接受交易，可修改结束时间（不能早于当前时间）
 // √ 2、暂停预售设置：暂停预售，可开启暂停，可关闭暂停
@@ -26,20 +27,6 @@ import "./LKKToken.sol";
 // 一些设计
 // 1. 购买立即释放比例下单后不随系统的释放比例更新而更新
 // 2. 封闭时长与解锁时长解锁次数随系统的更新而更新
-abstract contract TetherERC20 {
-    function totalSupply() public view virtual returns (uint256);
-
-    function balanceOf(address who) public view virtual returns (uint256);
-
-    function transfer(address to, uint256 value) public virtual;
-
-    // 这个不返回 bool 值，太坑了
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) public virtual;
-}
 
 contract IDO is Ownable {
     enum Currency {
@@ -105,6 +92,8 @@ contract IDO is Ownable {
         string memory _name,
         address _usdtAddress,
         address _lkkAddress,
+        address[] memory targets,
+        uint32[] memory percentages,
         uint256[] memory params
     ) {
         name = _name;
@@ -129,19 +118,21 @@ contract IDO is Ownable {
         usdtToLkkRation = params[11];
 
         pause = false;
+
+        updatePayees(targets, percentages);
     }
 
     // 存lkk到合约里面
     function dposit(address from, uint256 lkkAmount) external virtual returns (bool) {
         console.log("dposit:", from, address(this), lkkAmount);
-        LKKToken(lkkAddress).transferFrom(from, address(this), lkkAmount);
+        ILKKToken(lkkAddress).transferFrom(from, address(this), lkkAmount);
         return true;
     }
 
     // 从合约里面提取lkk
     function withdraw(uint256 lkkAmount) public onlyOwner returns (bool) {
         console.log("withdraw:", msg.sender, lkkAmount);
-        LKKToken(lkkAddress).transfer(msg.sender, lkkAmount);
+        ILKKToken(lkkAddress).transfer(msg.sender, lkkAmount);
         return true;
     }
 
@@ -162,7 +153,7 @@ contract IDO is Ownable {
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
 
         // 打lkk给用户
-        LKKToken(lkkAddress).transfer(msg.sender, releaseAmount);
+        ILKKToken(lkkAddress).transfer(msg.sender, releaseAmount);
 
         // 收钱
         uint256 curSum = 0;
@@ -185,14 +176,14 @@ contract IDO is Ownable {
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
 
         // 打lkk给用户
-        LKKToken(lkkAddress).transfer(msg.sender, releaseAmount);
+        ILKKToken(lkkAddress).transfer(msg.sender, releaseAmount);
 
         console.log("buyWithUSDT:", msg.sender, usdtAmount, lkkAmount);
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
-            TetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            ITetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 
@@ -225,7 +216,7 @@ contract IDO is Ownable {
             }
         }
 
-        LKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
+        ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
         address[] storage _unlockRecords = unlockRecords[orderId]; //记录订单解锁操作
         _unlockRecords.push(msg.sender);
         return true;
@@ -376,7 +367,7 @@ contract IDO is Ownable {
         usdtToLkkRation = _usdtToLkkRation;
     }
 
-    function updatePayees(address[] calldata targets, uint32[] calldata percentages) public onlyOwner {
+    function updatePayees(address[] memory targets, uint32[] memory percentages) public onlyOwner {
         require(targets.length == percentages.length, "IDO: targets.length should equal percentages.length");
 
         uint256 total = 0;
