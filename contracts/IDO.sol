@@ -124,8 +124,6 @@ contract IDO is Ownable {
         perMaxBuy = params[4];
         limitBuy = params[5];
 
-        payees.push(Payee(payable(msg.sender), 100)); // 默认部署者全部收了
-
         releaseRatio = params[6];
         lockTime = params[7];
         deblockTime = params[8];
@@ -176,7 +174,7 @@ contract IDO is Ownable {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (value - curSum) : ((value * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (value - curSum) : ((value * payees[i].percentage) / 100);
             payees[i].target.transfer(curAmount);
             curSum += curAmount;
         }
@@ -200,7 +198,7 @@ contract IDO is Ownable {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
             ITetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }

@@ -159,7 +159,7 @@ describe("IDO", function () {
         perMaxBuy = "100",
         limitBuy = "10000";
       const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem]
-      gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, issuerSignerAddress, params);
+      gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, issuerSignerAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], params);
     }
     await gameItemSell.deployed();
     const gameItemSellAddress = gameItemSell.address
@@ -213,15 +213,18 @@ describe("IDO", function () {
         endTime = now + 6 * 30 * 24 * 3600,
         perMinBuy = "1",
         perMaxBuy = "10000000000000000000000000000000000",
-        limitBuy = "100000000000000000000000000000000000000";
-      const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy]
+        limitBuy = "100000000000000000000000000000000000000",
+        oriTokenToPreSell = "1024",
+        usdtToPreSell = "2048";
+      const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToPreSell, usdtToPreSell]
       preSell = await PreSell.deploy(usdtAddress, [address1, address2], [20, 80], params);
     }
 
     // 购买测试
     {
       // 用户使用原生币购买道具
-      await preSell.connect(userSigner).buyWithOriToken(orderId(), { value: 1000 })
+      await preSell.connect(userSigner).buyWithOriToken(orderId(), { value: 1025 })
+      console.log("preSell balanceOf: ", await preSell.balanceOf(userSignerAddress))
 
       // userSigner 给 preSell 合约授权，这样 preSell 就能把钱转给收钱人了
       console.log("userSigner approve tether to preSell")
@@ -230,7 +233,8 @@ describe("IDO", function () {
       console.log("before buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("before buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
       console.log("before buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))
-      await preSell.connect(userSigner).buyWithUSDT(880, orderId())
+      await preSell.connect(userSigner).buyWithUSDT(4097, orderId())
+      console.log("preSell balanceOf: ", await preSell.balanceOf(userSignerAddress))
       console.log("after buyWithUSDT preSell USDT " + userSignerAddress, await tether.balanceOf(userSignerAddress))
       console.log("after buyWithUSDT preSell USDT " + address1, await tether.balanceOf(address1))
       console.log("after buyWithUSDT preSell USDT " + address2, await tether.balanceOf(address2))

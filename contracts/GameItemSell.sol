@@ -86,6 +86,8 @@ contract GameItemSell is Ownable {
         address _lkkAddress,
         address _gameItemAddress,
         address _gameItemSupply,
+        address[] memory targets,
+        uint32[] memory percentages,
         uint256[] memory params
     ) {
         usdtAddress = _usdtAddress;
@@ -101,13 +103,13 @@ contract GameItemSell is Ownable {
         perMaxBuy = params[4];
         limitBuy = params[5];
 
-        payees.push(Payee(payable(msg.sender), 100)); // 默认部署者全部收了
-
         oriTokenToGameItem = params[6];
         usdtToGameItem = params[7];
         lkkToGameItem = params[8];
 
         pause = false;
+
+        updatePayees(targets, percentages);
     }
 
     // 传入原生币数量，能换取多少个游戏道具
@@ -140,7 +142,7 @@ contract GameItemSell is Ownable {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             payees[i].target.transfer(curAmount);
             curSum += curAmount;
         }
@@ -168,7 +170,7 @@ contract GameItemSell is Ownable {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             ITetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
@@ -196,7 +198,7 @@ contract GameItemSell is Ownable {
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             ITetherERC20(lkkAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
@@ -286,7 +288,7 @@ contract GameItemSell is Ownable {
         return balance;
     }
 
-    function updatePayees(address[] calldata targets, uint32[] calldata percentages) public onlyOwner {
+    function updatePayees(address[] memory targets, uint32[] memory percentages) public onlyOwner {
         require(targets.length == percentages.length, "GameItemSell: targets.length should equal percentages.length");
 
         uint256 total = 0;

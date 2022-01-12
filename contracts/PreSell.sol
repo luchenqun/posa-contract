@@ -33,9 +33,10 @@ contract PreSell is Ownable {
     }
     struct Balance {
         address target; // 收款人
-        uint256 origin; // 原始金额
+        uint256 origin; // 当时金额
         uint256 time; // 购买时间
         Currency currency; // 购买币种
+        uint256 toPreSell; // 当时单价
         uint256 orderId; //订单ID
     }
 
@@ -48,6 +49,9 @@ contract PreSell is Ownable {
     uint256 public perMinBuy; // 每次最低购买多少个游戏道具
     uint256 public perMaxBuy; // 每次最大购买多少个游戏道具
     uint256 public limitBuy; // 最多购买多少个游戏道具
+    uint256 public oriTokenToPreSell; // 需要多少原生 token 购买一张入场券
+    uint256 public usdtToPreSell; // 需要多少原生 usdt 购买一张入场券
+
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
@@ -82,6 +86,8 @@ contract PreSell is Ownable {
         perMinBuy = params[3];
         perMaxBuy = params[4];
         limitBuy = params[5];
+        oriTokenToPreSell = params[6];
+        usdtToPreSell = params[7];
 
         pause = false;
 
@@ -89,44 +95,48 @@ contract PreSell is Ownable {
     }
 
     // 使用原生币购买
-    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value) returns (bool) {
+    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value / oriTokenToPreSell) returns (bool) {
+        uint256 actual = (msg.value / oriTokenToPreSell) * oriTokenToPreSell;
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (msg.value - curSum) : ((msg.value * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             payees[i].target.transfer(curAmount);
             curSum += curAmount;
         }
 
-        presellOriTotal += msg.value;
+        presellOriTotal += actual;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, msg.value, block.timestamp, Currency.OriToken, orderId));
+        _balances.push(Balance(msg.sender, actual, block.timestamp, Currency.OriToken, oriTokenToPreSell, orderId));
         buyRecord[orderId] = msg.sender;
         return true;
     }
 
     // 使用usdt购买
-    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount) returns (bool) {
+    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount / usdtToPreSell) returns (bool) {
+        uint256 actual = (usdtAmount / usdtToPreSell) * usdtToPreSell;
+        console.log("PreSel buyWithUSDT:", usdtAmount, actual, usdtAmount / usdtToPreSell);
+
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
             TetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
-        presellUsdtTotal += usdtAmount;
+        presellUsdtTotal += actual;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, usdtAmount, block.timestamp, Currency.USDT, orderId));
+        _balances.push(Balance(msg.sender, actual, block.timestamp, Currency.USDT, usdtToPreSell, orderId));
         buyRecord[orderId] = msg.sender;
         return true;
     }
 
-    // 查询用户购买了多少
+    // 查询用户购买多少张券
     function balanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
         Balance[] memory _balances = balances[src];
         for (uint256 i = 0; i < _balances.length; i++) {
-            total += _balances[i].origin;
+            total += _balances[i].origin / _balances[i].toPreSell;
         }
         return total;
     }
@@ -155,6 +165,14 @@ contract PreSell is Ownable {
     function updateEndtime(uint256 _endTime) public onlyOwner {
         require(_endTime >= block.timestamp, "PreSell: endTime shoud  greater than current time");
         endTime = _endTime;
+    }
+
+    function updateOriTokenToPreSell(uint256 _oriTokenToPreSell) public onlyOwner {
+        oriTokenToPreSell = _oriTokenToPreSell;
+    }
+
+    function updateUsdtToPreSell(uint256 _usdtToPreSell) public onlyOwner {
+        usdtToPreSell = _usdtToPreSell;
     }
 
     function updatePause(bool _pause) public onlyOwner {
