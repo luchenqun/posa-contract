@@ -67,7 +67,7 @@ contract PreSell is Ownable {
 
     constructor(
         address _usdtAddress,
-        address[] memory targets, 
+        address[] memory targets,
         uint32[] memory percentages,
         uint256[] memory params
     ) {
@@ -86,7 +86,7 @@ contract PreSell is Ownable {
         updatePayees(targets, percentages);
     }
 
-    // 使用原生币购买游戏道具
+    // 使用原生币购买
     function buyWithOriToken() external payable virtual ensure(msg.value) returns (bool) {
         // 收钱
         uint256 curSum = 0;
@@ -102,7 +102,7 @@ contract PreSell is Ownable {
         return true;
     }
 
-    // 使用usdt购买lkk
+    // 使用usdt购买
     function buyWithUSDT(uint256 usdtAmount) external virtual ensure(usdtAmount) returns (bool) {
         // 收钱
         uint256 curSum = 0;

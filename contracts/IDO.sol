@@ -64,8 +64,12 @@ contract IDO is Ownable {
     uint256 public lockTime; // 买了之后，封闭多长时间不允许提取，单位秒
     uint256 public deblockTime; // 解锁时间长度，单位秒
     uint256 public deblockCount; // 在 deblockTime 可线性解锁多少次
-    uint256 public oriTokenToLkkRation; // 原生 token 兑换 lkk 比例
-    uint256 public usdtToLkkRation; // usdt 兑换 lkk比例
+
+    uint256 public oriTokenToLkkRationNumerator; // 原生 token 兑换 lkk 比例分子
+    uint256 public oriTokenToLkkRationDenominator; // 原生 token 兑换 lkk 比例分母
+    uint256 public usdtToLkkRationNumerator; // usdt 兑换 lkk比例分子
+    uint256 public usdtToLkkRationDenominator; // usdt 兑换 lkk比例分母
+
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
     mapping(address => Balance[]) public balances; // 户购买lkk查询
@@ -114,8 +118,10 @@ contract IDO is Ownable {
         lockTime = params[7];
         deblockTime = params[8];
         deblockCount = params[9];
-        oriTokenToLkkRation = params[10];
-        usdtToLkkRation = params[11];
+        oriTokenToLkkRationNumerator = params[10];
+        oriTokenToLkkRationDenominator = params[11];
+        usdtToLkkRationNumerator = params[12];
+        usdtToLkkRationDenominator = params[13];
 
         pause = false;
 
@@ -138,18 +144,18 @@ contract IDO is Ownable {
 
     // 传入原生币数量，能换取多少LKK币
     function getLkkByOriToken(uint256 amount) public view returns (uint256) {
-        return oriTokenToLkkRation * amount;
+        return (oriTokenToLkkRationNumerator * amount) / oriTokenToLkkRationDenominator;
     }
 
     // 传入USDT数量，能换取多少LKK币
     function getLkkByUSDT(uint256 amount) public view returns (uint256) {
-        return usdtToLkkRation * amount;
+        return (usdtToLkkRationNumerator * amount) / usdtToLkkRationDenominator;
     }
 
     // 使用原生币购买lkk
-    function buyWithOriToken(string memory orderId) external payable virtual ensure(msg.value * oriTokenToLkkRation) returns (bool) {
+    function buyWithOriToken(string memory orderId) external payable virtual ensure((msg.value * oriTokenToLkkRationNumerator) / oriTokenToLkkRationDenominator) returns (bool) {
         uint256 value = msg.value;
-        uint256 lkkAmount = oriTokenToLkkRation * value;
+        uint256 lkkAmount = (oriTokenToLkkRationNumerator * value) / oriTokenToLkkRationDenominator;
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
 
         // 打lkk给用户
@@ -171,8 +177,8 @@ contract IDO is Ownable {
     }
 
     // 使用usdt购买lkk
-    function buyWithUSDT(uint256 usdtAmount, string memory orderId) external virtual ensure(usdtToLkkRation * usdtAmount) returns (bool) {
-        uint256 lkkAmount = usdtToLkkRation * usdtAmount;
+    function buyWithUSDT(uint256 usdtAmount, string memory orderId) external virtual ensure((usdtToLkkRationNumerator * usdtAmount) / usdtToLkkRationDenominator) returns (bool) {
+        uint256 lkkAmount = (usdtToLkkRationNumerator * usdtAmount) / usdtToLkkRationDenominator;
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
 
         // 打lkk给用户
@@ -359,12 +365,14 @@ contract IDO is Ownable {
         pause = _pause;
     }
 
-    function updateOriTokenToLkkRation(uint256 _oriTokenToLkkRation) public onlyOwner {
-        oriTokenToLkkRation = _oriTokenToLkkRation;
+    function updateOriTokenToLkkRation(uint256 _oriTokenToLkkRationNumerator, uint256 _oriTokenToLkkRationDenominator) public onlyOwner {
+        oriTokenToLkkRationNumerator = _oriTokenToLkkRationNumerator;
+        oriTokenToLkkRationDenominator = _oriTokenToLkkRationDenominator;
     }
 
-    function updateUsdtToLkkRation(uint256 _usdtToLkkRation) public onlyOwner {
-        usdtToLkkRation = _usdtToLkkRation;
+    function updateUsdtToLkkRation(uint256 _usdtToLkkRationNumerator, uint256 _usdtToLkkRationDenominator) public onlyOwner {
+        usdtToLkkRationNumerator = _usdtToLkkRationNumerator;
+        usdtToLkkRationDenominator = _usdtToLkkRationDenominator;
     }
 
     function updatePayees(address[] memory targets, uint32[] memory percentages) public onlyOwner {

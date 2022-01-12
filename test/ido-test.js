@@ -21,7 +21,7 @@ describe("IDO", function () {
     console.log("==================================== IDO Test ====================================")
 
     const presellMax = "10000000000000000000000000000000000000000000000"
-    const userUsdtAmount = "100000000"
+    const userUsdtAmount = "1000000000000"
     const totalSupplyMax = presellMax + "000"
 
     // Tether Deploy
@@ -62,9 +62,11 @@ describe("IDO", function () {
       lockTime = 3 * 30 * 24 * 3600,
       deblockTime = 3 * 30 * 24 * 3600,
       deblockCount = 9,
-      oriTokenToLkkRation = 100,
-      usdtToLkkRation = 10;
-    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRation, usdtToLkkRation]);
+      oriTokenToLkkRationNumerator = 12,
+      oriTokenToLkkRationDenominator = 1,
+      usdtToLkkRationNumerator = 1,
+      usdtToLkkRationDenominator = 4;
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator]);
     await ido.deployed();
     const idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)
@@ -90,7 +92,7 @@ describe("IDO", function () {
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("购买LKK原生币前，余额", await userSigner.getBalance())
-    await ido.connect(userSigner).buyWithOriToken('orderId_01', { value: 10 });
+    await ido.connect(userSigner).buyWithOriToken('orderId_01', { value: 100000 });
     console.log("购买LKK原生币后，余额", await userSigner.getBalance());
     console.log("购买人地址：", await ido.getBuyerByOrderId("orderId_01"));
 
