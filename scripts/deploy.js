@@ -4,15 +4,87 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
+const { ethers } = hre
+const { utils } = ethers;
+const config = require("./config.js")
+let { usdtCfg, lkkCfg, idoCfg, preSellCfg, gameItemCfg, gameItemSellCfg } = config
+
+const toWei = (ether) => {
+  return utils.parseEther(String(ether)).toString()
+}
 
 async function main() {
-  // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("IDO");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  let usdtAddress, lkkAddress, gameItemAddress;
 
-  await greeter.deployed();
+  // usdt 合约
+  if (!usdtCfg.address) {
+    const Tether = await ethers.getContractFactory("BEP20USDT", usdtCfg.signer);
+    const tether = await Tether.deploy();
+    await tether.deployed();
+    usdtAddress = tether.address
+    console.log("Tether Deploy", usdtAddress)
+  } else {
+    usdtAddress = usdtCfg.address
+  }
 
-  console.log("Greeter deployed to:", greeter.address);
+  // lkk 合约部署
+  if (!lkkCfg.address) {
+    const LKK = await ethers.getContractFactory("LKKToken", lkkCfg.signer);
+    const totalSupplyMax = toWei(10000000000)
+    const lkk = await LKK.deploy("Little King Kong", "LKK", totalSupplyMax, "0x10ed43c718714eb63d5aa57b78b54704e256024e", usdtAddress);
+    await lkk.deployed();
+    lkkAddress = lkk.address;
+    console.log("LKK Deploy", lkkAddress)
+  } else {
+    lkkAddress = lkkCfg.address
+  }
+
+  // ido 合约部署
+  if (!idoCfg.address) {
+    const IDO = await ethers.getContractFactory("IDO", idoCfg.signer);
+    const { name, targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator } = idoCfg;
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, targets, percentages, [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator]);
+    await ido.deployed();
+    idoAddress = ido.address
+    console.log("IDO Deploy", idoAddress)
+  } else {
+    idoAddress = idoCfg.address
+  }
+
+  // preSell 合约部署
+  if (!preSellCfg.address) {
+    const PreSell = await ethers.getContractFactory("PreSell", preSellCfg.signer);
+    // 参数顺序
+    // _usdtAddress targets[] percentages[] presellMax beginTime endTime perMinBuy perMaxBuy limitBuy
+    let { targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToPreSell, usdtToPreSell } = preSellCfg
+    const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToPreSell, usdtToPreSell]
+    const preSell = await PreSell.deploy(usdtAddress, targets, percentages, params);
+    console.log("preSell Deploy", preSell.address)
+  }
+
+  // GameItem 合约部署
+  if (!gameItemCfg.address) {
+    const GameItem = await ethers.getContractFactory("GameItem", gameItemCfg.signer);
+    const gameItem = await GameItem.deploy();
+    await gameItem.deployed();
+    gameItemAddress = gameItem.address;
+    console.log("GameItem Deploy", gameItemAddress)
+  } else {
+    gameItemAddress = gameItemCfg.address;
+  }
+
+  // GameItem 合约部署
+  if (!gameItemSellCfg.address) {
+    const GameItemSell = await ethers.getContractFactory("GameItemSell", gameItemSellCfg.signer);
+    const { issuerAddress, presellMax, targets, percentages, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem } = gameItemSellCfg
+
+    const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem]
+    let gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, issuerAddress, targets, percentages, params);
+
+    await gameItemSell.deployed();
+    const gameItemSellAddress = gameItemSell.address
+    console.log("GameItemSell Deploy", gameItemSellAddress)
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

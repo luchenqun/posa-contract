@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-interface ITetherERC20 {
+interface IBEP20USDT {
     function balanceOf(address who) external view returns (uint256);
 
     // 这个不返回 bool 值，太坑了

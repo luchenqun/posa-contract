@@ -12,7 +12,7 @@ const orderId = () => {
 
 // 讲 ether 转为 wei
 const toWei = (ether) => {
-  return utils.parseEther(String(ether)).toString(10)
+  return utils.parseEther(String(ether)).toString()
 }
 
 describe("IDO", function () {
@@ -146,7 +146,7 @@ describe("IDO", function () {
     }
 
     // 部署一个预售游戏道具合约
-    // IDO Deploy
+    // GameItemSell Deploy
     const GameItemSell = await ethers.getContractFactory("GameItemSell", idoSigner);
     let gameItemSell = null;
     let oriTokenToGameItem = toWei(0.01),
@@ -166,7 +166,6 @@ describe("IDO", function () {
         limitBuy = "10000";
       const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem]
       gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, issuerSignerAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], params);
-      console.log("gameItemSell Deploy", gameItemSell.address)
     }
     await gameItemSell.deployed();
     const gameItemSellAddress = gameItemSell.address

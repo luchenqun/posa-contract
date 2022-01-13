@@ -6,7 +6,8 @@
   "scripts": {
     "test": "npx hardhat test",
     "compile": "npx hardhat compile",
-    "clean": "npx hardhat clean"
+    "clean": "npx hardhat clean",
+    "deploy": "npx hardhat run scripts/deploy.js"
   },
   "keywords": [],
   "author": "",

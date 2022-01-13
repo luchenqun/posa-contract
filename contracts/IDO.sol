@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 import "./interfaces/ILKKToken.sol";
-import "./interfaces/ITetherERC20.sol";
+import "./interfaces/IBEP20USDT.sol";
 
 // √ 1、预售期设置：设置开始时间和结束时间，开始前、结束后合约不接受交易，可修改结束时间（不能早于当前时间）
 // √ 2、暂停预售设置：暂停预售，可开启暂停，可关闭暂停
@@ -199,7 +199,7 @@ contract IDO is Ownable {
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length - 1) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
-            ITetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            IBEP20USDT(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
 
