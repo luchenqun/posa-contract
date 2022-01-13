@@ -409,11 +409,13 @@ contract IDO is Ownable {
     }
 
     function updateOriTokenToLkkRation(uint256 _oriTokenToLkkRationNumerator, uint256 _oriTokenToLkkRationDenominator) public onlyOwner {
+        require(_oriTokenToLkkRationDenominator != 0, "IDO: _oriTokenToLkkRationDenominator shoud not equal 0");
         oriTokenToLkkRationNumerator = _oriTokenToLkkRationNumerator;
         oriTokenToLkkRationDenominator = _oriTokenToLkkRationDenominator;
     }
 
     function updateUsdtToLkkRation(uint256 _usdtToLkkRationNumerator, uint256 _usdtToLkkRationDenominator) public onlyOwner {
+        require(_usdtToLkkRationDenominator != 0, "IDO: _usdtToLkkRationDenominator shoud not equal 0");
         usdtToLkkRationNumerator = _usdtToLkkRationNumerator;
         usdtToLkkRationDenominator = _usdtToLkkRationDenominator;
     }
