@@ -16,6 +16,7 @@ const toWei = (ether) => {
 }
 
 describe("IDO", function () {
+  this.timeout(0)
   it("IDO work flow test", async function () {
     const idoSigner = ethers.provider.getSigner(0); // ido部署方，我们自己
     const issuerSigner = ethers.provider.getSigner(1); // 发行方，指北京游戏发行方
@@ -165,6 +166,7 @@ describe("IDO", function () {
         limitBuy = "10000";
       const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToGameItem, usdtToGameItem, lkkToGameItem]
       gameItemSell = await GameItemSell.deploy(usdtAddress, lkkAddress, gameItemAddress, issuerSignerAddress, [idoSignerAddress, issuerSignerAddress], [90, 10], params);
+      console.log("gameItemSell Deploy", gameItemSell.address)
     }
     await gameItemSell.deployed();
     const gameItemSellAddress = gameItemSell.address
@@ -228,6 +230,7 @@ describe("IDO", function () {
         usdtToPreSell = toWei(500);
       const params = [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, oriTokenToPreSell, usdtToPreSell]
       preSell = await PreSell.deploy(usdtAddress, [address1, address2], [20, 80], params);
+      console.log("preSell Deploy", preSell.address)
     }
 
     // 购买测试
