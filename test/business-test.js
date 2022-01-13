@@ -10,6 +10,7 @@ const orderId = () => {
   return new Date().getTime() + parseInt(Math.random() * 1000000);
 }
 
+// 讲 ether 转为 wei
 const toWei = (ether) => {
   return utils.parseEther(String(ether)).toString(10)
 }
@@ -104,7 +105,6 @@ describe("IDO", function () {
     await ido.connect(userSigner).buyWithOriToken(balanceOrderId, { value: toWei(10) });
     console.log("balanceDetailByOrderId detail:", await ido.balanceDetailByOrderId(balanceOrderId))
     console.log("购买LKK原生币后，余额", await userSigner.getBalance());
-
     console.log("after buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("balanceDetail 0", await ido.balanceDetail(userSignerAddress, 0))
 
