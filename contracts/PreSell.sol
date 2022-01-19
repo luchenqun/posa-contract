@@ -49,8 +49,7 @@ contract PreSell is Ownable {
 
     // 购买限制
     modifier ensure(uint256 exValue, uint256 exRatio) {
-        uint256 mod = exValue % exRatio;
-        require(mod == 0, "PreSell: not an exact multiple");
+        require(exValue % exRatio == 0, "PreSell: not an exact multiple");
         uint256 amount = exValue / exRatio;
         require(endTime >= block.timestamp, "PreSell: EXPIRED"); // 预售时间已结束
         require(beginTime <= block.timestamp, "PreSell: TOO EARLY"); // 预售时间未开始
