@@ -30,6 +30,7 @@ contract PreSell is Ownable {
     uint256 public presellMax; // 预售总量
     uint256 public presellOriTotal; // 已售总量
     uint256 public presellUsdtTotal; // 已售总量
+    uint256 public presellTotal; //所有用户购买的累计数量
     uint256 public beginTime; // 预售开始时间
     uint256 public endTime; // 预售结束时间
     uint256 public perMinBuy; // 每次最低购买多少个游戏道具
@@ -78,14 +79,14 @@ contract PreSell is Ownable {
         usdtToPreSell = params[7];
 
         pause = false;
-
         updatePayees(targets, percentages);
     }
 
     // 使用原生币购买
     function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value, oriTokenToPreSell) returns (bool) {
         uint256 actual = msg.value;
-        console.log("PreSel buyWithOriToken: %d/%d=%d", actual, oriTokenToPreSell, actual / oriTokenToPreSell);
+        uint256 numbers = actual / oriTokenToPreSell;
+        console.log("PreSel buyWithOriToken: %d/%d=%d", actual, oriTokenToPreSell, numbers);
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
@@ -95,6 +96,7 @@ contract PreSell is Ownable {
         }
 
         presellOriTotal += actual;
+        presellTotal += numbers;
         Balance[] storage _balances = balances[msg.sender];
         _balances.push(Balance(msg.sender, actual, block.timestamp, Currency.OriToken, oriTokenToPreSell, orderId));
         buyRecord[orderId] = msg.sender;
@@ -103,7 +105,8 @@ contract PreSell is Ownable {
 
     // 使用usdt购买
     function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount, usdtToPreSell) returns (bool) {
-        console.log("PreSel buyWithUSDT: %d/%d=%d", usdtAmount, usdtToPreSell, usdtAmount / usdtToPreSell);
+        uint256 numbers = usdtAmount / usdtToPreSell;
+        console.log("PreSel buyWithUSDT: %d/%d=%d", usdtAmount, usdtToPreSell, numbers);
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
@@ -112,6 +115,7 @@ contract PreSell is Ownable {
             curSum += curAmount;
         }
         presellUsdtTotal += usdtAmount;
+        presellTotal += numbers;
         Balance[] storage _balances = balances[msg.sender];
         _balances.push(Balance(msg.sender, usdtAmount, block.timestamp, Currency.USDT, usdtToPreSell, orderId));
         buyRecord[orderId] = msg.sender;

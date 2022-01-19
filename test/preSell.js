@@ -139,6 +139,7 @@ describe("PreSell Unit Test", function () {
     expect(await orderDetail.currency).to.equal(1);
     expect(await orderDetail.toPreSell).to.equal(usdtToPreSell);
     expect(await orderDetail.orderId).to.equal(orderId);
+    console.log("total buy sum:",await preSell.presellTotal());
   });
 
   //使用USDT购买超过最大购买量，结果：失败
