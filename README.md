@@ -7,6 +7,14 @@
 
 开发环境是基于[Hardhat](https://learnblockchain.cn/docs/hardhat/getting-started/)，为什么选择Hardhat：**Hardhat内置了Hardhat网络，这是一个专为开发设计的本地以太坊网络。主要功能有Solidity调试，跟踪调用堆栈、console.log()和交易失败时的明确错误信息提示等**。
 
+# 单元测试
+执行`yarn test` 执行 test 目录下面所有的测试用例。如果要运行某个脚本文件，比如只运行`preSell.js`指定文件即可。如：`yarn test ./test/preSell.js`
+
+其中 `business.js` 为一个正常的业务流程。其他的按照合约名字起名对每个合约进行单元测试。
+
+# 扁平化处理
+为了方便开发，合约以模块化的代码分散在各个文件夹。但是提交到线上浏览器如etherscan的时候，需要将文件进行扁平化提交。执行命令 `yarn flatten ./contracts/PreSell.sol > ./flatten/PreSell.sol` 即可将合约`PreSell.sol` 进行扁平化到flatten目录。当然，扁平化的合约还要稍加处理一下才能通过编译。
+
 # IDO合约实现目标
 业务场景简要描述：游戏公司已经发行了一个ERC20的LKK合约，我们需要通过IDO合约，将这些LKK代币分批出售。用户可以使用链上的原生币以及USDT来购买LKK，购买后LKK币，买了之后用户立即可以获得购买的LKK币的一部分。其他的LKK币锁在IDO合约里面，经过一个锁定期后，用户可以逐渐从IDO合约里面解锁LKK币。
 

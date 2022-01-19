@@ -4,21 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
-
-abstract contract TetherERC20 {
-    function totalSupply() public view virtual returns (uint256);
-
-    function balanceOf(address who) public view virtual returns (uint256);
-
-    function transfer(address to, uint256 value) public virtual;
-
-    // 这个不返回 bool 值，太坑了
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) public virtual;
-}
+import "./interfaces/IBEP20USDT.sol";
 
 contract PreSell is Ownable {
     enum Currency {
@@ -121,7 +107,7 @@ contract PreSell is Ownable {
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
             uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
-            TetherERC20(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            IBEP20USDT(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
         presellUsdtTotal += actual;
