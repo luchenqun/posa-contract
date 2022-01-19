@@ -18,7 +18,7 @@ contract PreSell is Ownable {
         uint32 percentage; // 收款百分比
     }
     struct Balance {
-        address target; // 收款人
+        address target; // 付款人
         uint256 origin; // 当时金额
         uint256 time; // 购买时间
         Currency currency; // 购买币种
@@ -48,7 +48,10 @@ contract PreSell is Ownable {
     receive() external payable {}
 
     // 购买限制
-    modifier ensure(uint256 amount) {
+    modifier ensure(uint256 exValue, uint256 exRatio) {
+        uint256 mod = exValue % exRatio;
+        require(mod == 0, "PreSell: not an exact multiple");
+        uint256 amount = exValue / exRatio;
         require(endTime >= block.timestamp, "PreSell: EXPIRED"); // 预售时间已结束
         require(beginTime <= block.timestamp, "PreSell: TOO EARLY"); // 预售时间未开始
         require(pause == false, "PreSell: PAUSEING"); // 暂停购买
@@ -81,8 +84,9 @@ contract PreSell is Ownable {
     }
 
     // 使用原生币购买
-    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value / oriTokenToPreSell) returns (bool) {
-        uint256 actual = (msg.value / oriTokenToPreSell) * oriTokenToPreSell;
+    function buyWithOriToken(uint256 orderId) external payable virtual ensure(msg.value, oriTokenToPreSell) returns (bool) {
+        uint256 actual = msg.value;
+        console.log("PreSel buyWithOriToken: %d/%d=%d", actual, oriTokenToPreSell, actual / oriTokenToPreSell);
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
@@ -99,20 +103,18 @@ contract PreSell is Ownable {
     }
 
     // 使用usdt购买
-    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount / usdtToPreSell) returns (bool) {
-        uint256 actual = (usdtAmount / usdtToPreSell) * usdtToPreSell;
-        console.log("PreSel buyWithUSDT:", usdtAmount, actual, usdtAmount / usdtToPreSell);
-
+    function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure(usdtAmount, usdtToPreSell) returns (bool) {
+        console.log("PreSel buyWithUSDT: %d/%d=%d", usdtAmount, usdtToPreSell, usdtAmount / usdtToPreSell);
         // 收钱
         uint256 curSum = 0;
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length - 1) ? (actual - curSum) : ((actual * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (usdtAmount - curSum) : ((usdtAmount * payees[i].percentage) / 100);
             IBEP20USDT(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
             curSum += curAmount;
         }
-        presellUsdtTotal += actual;
+        presellUsdtTotal += usdtAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, actual, block.timestamp, Currency.USDT, usdtToPreSell, orderId));
+        _balances.push(Balance(msg.sender, usdtAmount, block.timestamp, Currency.USDT, usdtToPreSell, orderId));
         buyRecord[orderId] = msg.sender;
         return true;
     }

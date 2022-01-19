@@ -1,7 +1,7 @@
 {
   "name": "hardhat",
   "version": "1.0.0",
-  "description": "",
+  "description": "* 安装[Node.js](https://nodejs.org/zh-cn/)。建议安装最新版16.x的即可。\r * 执行命令`npm i yarn -g`安装全局yarn。\r * 在项目目录，执行命令`yarn`命令安装所需依赖。\r * 执行命令 `yarn compile` 执行合约部署。\r * 执行命令 `yarn test` 运行 test 目录下面的脚本。",
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
@@ -23,5 +23,12 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.1"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://114.215.177.69:5151/lucq/ido-solidity.git"
   }
 }
