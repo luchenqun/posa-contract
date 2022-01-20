@@ -130,7 +130,7 @@ contract PreSell is Ownable {
     ) external virtual ensure(usdtAmount, usdtToPreSell) returns (bool) {
         uint256 actualUsdt = (usdtAmount / usdtToPreSell) * usdtToPreSell;
         uint256 actualCount = usdtAmount / usdtToPreSell;
-        require(actualCount >= count, "PreSell: actual count must greater than count"); // 预售时间已结束
+        require(actualCount >= count, "PreSell: actual count must greater than count"); // 实际能买到的必须大于用户期望的
         console.log("PreSel buyWithUSDT: %d/%d=%d", usdtAmount, usdtToPreSell, actualCount);
 
         // 收钱
