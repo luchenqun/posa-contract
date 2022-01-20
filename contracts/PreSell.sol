@@ -122,6 +122,31 @@ contract PreSell is Ownable {
         return true;
     }
 
+    // 使用usdt购买
+    function buyExactWithUSDT(
+        uint256 count,
+        uint256 usdtAmount,
+        uint256 orderId
+    ) external virtual ensure(usdtAmount, usdtToPreSell) returns (bool) {
+        uint256 actualUsdt = (usdtAmount / usdtToPreSell) * usdtToPreSell;
+        uint256 actualCount = usdtAmount / usdtToPreSell;
+        require(actualCount >= count, "PreSell: actual count must greater than count"); // 预售时间已结束
+        console.log("PreSel buyWithUSDT: %d/%d=%d", usdtAmount, usdtToPreSell, actualCount);
+
+        // 收钱
+        uint256 curSum = 0;
+        for (uint256 i = 0; i < payees.length; i++) {
+            uint256 curAmount = (i == payees.length - 1) ? (actualUsdt - curSum) : ((actualUsdt * payees[i].percentage) / 100);
+            IBEP20USDT(usdtAddress).transferFrom(msg.sender, payees[i].target, curAmount);
+            curSum += curAmount;
+        }
+        presellUsdtTotal += actualUsdt;
+        Balance[] storage _balances = balances[msg.sender];
+        _balances.push(Balance(msg.sender, actualUsdt, block.timestamp, Currency.USDT, usdtToPreSell, orderId));
+        buyRecord[orderId] = msg.sender;
+        return true;
+    }
+
     // 查询用户购买多少张券
     function balanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
