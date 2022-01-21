@@ -158,7 +158,7 @@ describe("PreSell Unit Test", function () {
     // 购买前各个原生币的余额 ethers.utils.formatEther(
     const originUser = await userSigner.getBalance();
     const originT1 = await ethers.provider.getBalance(t1);
-    const originT2 = await ethers.provider.getBalance(t1);
+    const originT2 = await ethers.provider.getBalance(t2);
     console.log("originUser:%s,originT1:%s,originT2:%s",originUser,originT1,originT2);
     const originToT1 = BigNumber.from(originAmount).mul(p1).div(100);
     const originToT2 = BigNumber.from(originAmount).sub(originToT1);
@@ -185,7 +185,7 @@ describe("PreSell Unit Test", function () {
     expect(nowT1).to.equal(BigNumber.from(originT1).add(originToT1)); // 目标地址收到自己的百分比
     expect(nowT2).to.equal(BigNumber.from(originT2).add(originToT2)); // 目标地址收到自己的百分比
 
-    let orderDetail = await preSell.balanceDetailByOrderId(orderId);
+    const orderDetail = await preSell.balanceDetailByOrderId(orderId);
     expect(await orderDetail.target).to.equal(userAddress);
     expect(await orderDetail.origin).to.equal(originAmount);
     expect(await orderDetail.currency).to.equal(0);
