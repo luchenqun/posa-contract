@@ -112,7 +112,7 @@ describe("PreSell Unit Test", function () {
     expect(await tether.allowance(userAddress, preSell.address)).to.equal(approveAmount)
   });
 
-  //用USDT购买成功测试，购买 buyNumber 张
+  //用USDT购买成功测试，购买N张，并检查各合约账户余额前后变化是否与预期一致
   it('buy with usdt success', async function () {
     const buyNumber = 2;
     const usdtAmount = BigNumber.from(usdtToPreSell).mul(buyNumber); // 传进去的usdt购买数量,购买N张
@@ -128,7 +128,8 @@ describe("PreSell Unit Test", function () {
     const orderId = generateOrderId();
     await preSell.connect(userSigner).buyWithUSDT(usdtAmount, orderId);
 
-    expect(await preSell.balanceOf(userAddress)).to.equal(count + buyNumber); // 优惠券总数增加
+    const nowCount = count.add(buyNumber);
+    expect(await preSell.balanceOf(userAddress)).to.equal(nowCount); // 优惠券总数增加
     expect(await tether.balanceOf(userAddress)).to.equal(BigNumber.from(usdtUser).sub(usdtAmount)); // 扣除实际的usdt支出
     expect(await tether.balanceOf(t1)).to.equal(BigNumber.from(usdtT1).add(usdtToT1)); // 目标地址收到自己的百分比
     expect(await tether.balanceOf(t2)).to.equal(BigNumber.from(usdtT2).add(usdtToT2)); // 目标地址收到自己的百分比
@@ -139,7 +140,7 @@ describe("PreSell Unit Test", function () {
     expect(await orderDetail.currency).to.equal(1);
     expect(await orderDetail.toPreSell).to.equal(usdtToPreSell);
     expect(await orderDetail.orderId).to.equal(orderId);
-    console.log("total buy sum:",await preSell.presellTotal());
+    expect(await preSell.presellTotal()).to.equal(nowCount);
   });
 
   //使用USDT购买超过最大购买量，结果：失败
@@ -148,5 +149,49 @@ describe("PreSell Unit Test", function () {
     const usdtAmount = BigNumber.from(usdtToPreSell).mul(count)
     await expect(preSell.connect(userSigner).buyWithUSDT(usdtAmount, generateOrderId())).to.be.revertedWith("PreSell: count must less than perMaxBuy");
   });
+
+  //使用原生币进行购买，并检查各账户余额前后变化是否与预期一致
+  it("buy with origin coin",async function (){
+    const buyNumber = 2;
+    const originAmount = BigNumber.from(oriTokenToPreSell).mul(buyNumber); //根据原生币兑换比例，购买N张
+
+    // 购买前各个原生币的余额 ethers.utils.formatEther(
+    const originUser = await userSigner.getBalance();
+    const originT1 = await ethers.provider.getBalance(t1);
+    const originT2 = await ethers.provider.getBalance(t1);
+    console.log("originUser:%s,originT1:%s,originT2:%s",originUser,originT1,originT2);
+    const originToT1 = BigNumber.from(originAmount).mul(p1).div(100);
+    const originToT2 = BigNumber.from(originAmount).sub(originToT1);
+    console.log("originAmount detail:%s,originToT1:%s,originToT2:%s",originAmount,originToT1,originToT2);
+    const count = await preSell.balanceOf(userAddress);//已购买张数
+    const orderId = generateOrderId();
+    const tx = await preSell.connect(userSigner).buyWithOriToken(orderId,{value:originAmount});
+    console.log("txHash:",tx.hash);
+    const receipt = await tx.wait();
+    console.log("receipt:",receipt);
+    const actualFee = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice);
+    console.log("actualFee:",actualFee);
+
+    const nowCount = count.add(buyNumber);
+    expect(await preSell.balanceOf(userAddress)).to.equal(nowCount); // 优惠券总数增加
+    const nowOriginUser = await userSigner.getBalance();
+    const nowT1 = await ethers.provider.getBalance(t1);
+    const nowT2 = await ethers.provider.getBalance(t2);
+    console.log("originUser:%s,nowT1:%s,nowT2:%s",nowOriginUser,nowT1,nowT2);
+    console.log("originUser:%s, nowOriginUser:%s",originUser,nowOriginUser);
+    console.log("%s - %s = %s",originUser,nowOriginUser,originUser.sub(nowOriginUser));
+
+    expect(nowOriginUser).to.equal(originUser.sub(actualFee).sub(originAmount)); //当前余额 = 原始余额 - 手续费 - 购买金额
+    expect(nowT1).to.equal(BigNumber.from(originT1).add(originToT1)); // 目标地址收到自己的百分比
+    expect(nowT2).to.equal(BigNumber.from(originT2).add(originToT2)); // 目标地址收到自己的百分比
+
+    let orderDetail = await preSell.balanceDetailByOrderId(orderId);
+    expect(await orderDetail.target).to.equal(userAddress);
+    expect(await orderDetail.origin).to.equal(originAmount);
+    expect(await orderDetail.currency).to.equal(0);
+    expect(await orderDetail.toPreSell).to.equal(oriTokenToPreSell);
+    expect(await orderDetail.orderId).to.equal(orderId);
+    expect(await preSell.presellTotal()).to.equal(nowCount);
+  })
 
 });
