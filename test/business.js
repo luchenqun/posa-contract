@@ -99,6 +99,10 @@ describe("Business Test", function () {
     // 查看ido合约是否到账
     expect(await lkk.balanceOf(idoAddress)).to.equal(presellMax);
 
+    console.log(await ido.connect(userSigner).checkBuyWithUSDT(1)); // 少于单次购买量
+
+    console.log(await ido.connect(userSigner).checkBuyWithUSDT(toWei(1200))); // 能够购买
+
     // 从ido合约用原生币购买lkk
     console.log("before buyWithOriToken lkk amount", await lkk.balanceOf(userSignerAddress))
     console.log("购买LKK原生币前，余额", await userSigner.getBalance())

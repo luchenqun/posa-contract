@@ -186,6 +186,28 @@ contract IDO is Ownable {
         return true;
     }
 
+    // 使用原生币购买lkk
+    function checkBuyWithUSDT(uint256 usdtAmount) public view returns (string memory) {
+        uint256 lkkAmount = (usdtToLkkRationNumerator * usdtAmount) / usdtToLkkRationDenominator;
+        if (endTime < block.timestamp) return ("IDO: EXPIRED"); // 预售时间已结束
+        if (beginTime > block.timestamp) return ("IDO: TOO EARLY"); // 预售时间未开始
+        if (pause == true) return ("IDO: PAUSEING"); // 暂停购买
+        if (presellMax - presellTotal <= perMinBuy) return ("IDO: The surplus does not meet the word purchase minimum"); // 剩余量已小于单次最低购买
+        if (presellTotal + lkkAmount > presellMax) return ("IDO: presellTotal must less than presellMax"); // 不能超过预售数量
+        if (lkkAmount > perMaxBuy) return ("IDO: lkkAmount must less than perMaxBuy"); // 单次购买必须小于最大购买
+        if (lkkAmount < perMinBuy) return ("IDO: lkkAmount must more than perMinBuy"); // 单次购买最少购买
+
+        uint256 allowanceUsdtAmount = IBEP20USDT(usdtAddress).allowance(msg.sender, address(this));
+        console.log("allowanceUsdtAmount = ", allowanceUsdtAmount);
+        if (usdtAmount > allowanceUsdtAmount) return ("IDO: User allowance ido to transferFrom usdt not enough"); // 用户授权额度不够
+
+        uint256 userUsdtAmount = IBEP20USDT(usdtAddress).balanceOf(msg.sender);
+        console.log("userUsdtAmount = ", userUsdtAmount);
+        if (usdtAmount > userUsdtAmount) return ("IDO: User usdt is not enough"); // 用户usdt够不够
+
+        return "can buy success";
+    }
+
     // 使用usdt购买lkk
     function buyWithUSDT(uint256 usdtAmount, uint256 orderId) external virtual ensure((usdtToLkkRationNumerator * usdtAmount) / usdtToLkkRationDenominator) returns (bool) {
         uint256 lkkAmount = (usdtToLkkRationNumerator * usdtAmount) / usdtToLkkRationDenominator;

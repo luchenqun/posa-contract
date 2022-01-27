@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 
 interface ILKKToken {
     function balanceOf(address who) external view returns (uint256);
-
-    // 这个不返回 bool 值，太坑了
+    function allowance(address owner, address spender) external view returns (uint256);
     function transferFrom(
         address from,
         address to,
