@@ -30,10 +30,10 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     }
     mapping(uint256 => Mosaic) private mosaics;
 
-    event MosaicBorned(uint256 indexed _mosaicId, address indexed _owner, uint256 _genes);
-    event MosaicRebirthed(uint256 indexed _mosaicId, uint256 _genes);
-    event MosaicRetired(uint256 indexed _mosaicId);
-    event MosaicEvolved(uint256 indexed _mosaicId, uint256 _oldGenes, uint256 _newGenes);
+    event MosaicBorned(uint256 indexed mosaicId_, address indexed owner_, uint256 genes_);
+    event MosaicRebirthed(uint256 indexed mosaicId_, uint256 genes_);
+    event MosaicRetired(uint256 indexed mosaicId_);
+    event MosaicEvolved(uint256 indexed mosaicId_, uint256 oldGenes_, uint256 newGenes_);
 
     constructor(string memory name_, string memory symbol_, string memory baseURI_) ERC721(name_, symbol_) {
         baseURI = baseURI_;
@@ -69,8 +69,8 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         _unpause();
     }
 
-    function getMosaic(uint256 _mosaicId) external view returns (Mosaic memory){
-        return mosaics[_mosaicId];
+    function getMosaic(uint256 mosaicId_) external view returns (Mosaic memory){
+        return mosaics[mosaicId_];
     }
 
     //新生mosaic
@@ -85,37 +85,37 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         uint256 mosaicId,
         uint256 genes,
         address owner) external onlyRole(MINTER_ROLE) {
-        Mosaic memory mosaic = Mosaic(name, defskill1, defskill2, defskill3, defskill4, defstars, element, mosaicId, genes, block.timestamp);
-        mosaics[mosaicId] = mosaic;
+        Mosaic memory mosaic_ = Mosaic(name, defskill1, defskill2, defskill3, defskill4, defstars, element, mosaicId, genes, block.timestamp);
+        mosaics[mosaicId] = mosaic_;
         _mint(owner, mosaicId);
         emit MosaicBorned(mosaicId, owner, genes);
     }
 
     //重生
-    function rebirthMosaic(uint256 _mosaicId, uint256 _genes) external onlyRole(MINTER_ROLE) {
-        require(mosaics[_mosaicId].bornAt != 0, "Rebirth: token nonexistent");
+    function rebirthMosaic(uint256 mosaicId_, uint256 genes_) external onlyRole(MINTER_ROLE) {
+        require(mosaics[mosaicId_].bornAt != 0, "Rebirth: token nonexistent");
 
-        Mosaic storage _mosaic = mosaics[_mosaicId];
-        _mosaic.genes = _genes;
+        Mosaic storage _mosaic = mosaics[mosaicId_];
+        _mosaic.genes = genes_;
         _mosaic.bornAt = block.timestamp;
-        emit MosaicRebirthed(_mosaicId, _genes);
+        emit MosaicRebirthed(mosaicId_, genes_);
     }
 
     //消毁
-    function retireMosaic(uint256 _mosaicId) external onlyRole(MINTER_ROLE) {
-        _burn(_mosaicId);
-        delete(mosaics[_mosaicId]);
+    function retireMosaic(uint256 mosaicId_) external onlyRole(MINTER_ROLE) {
+        _burn(mosaicId_);
+        delete(mosaics[mosaicId_]);
 
-        emit MosaicRetired(_mosaicId);
+        emit MosaicRetired(mosaicId_);
     }
 
     //进化
-    function evolveMosaic(uint256 _mosaicId, uint256 _newGenes) external onlyRole(MINTER_ROLE) {
-        require(mosaics[_mosaicId].bornAt != 0, "Evolve: token nonexistent");
+    function evolveMosaic(uint256 mosaicId_, uint256 newGenes_) external onlyRole(MINTER_ROLE) {
+        require(mosaics[mosaicId_].bornAt != 0, "Evolve: token nonexistent");
 
-        uint256 _oldGenes = mosaics[_mosaicId].genes;
-        mosaics[_mosaicId].genes = _newGenes;
-        emit MosaicEvolved(_mosaicId, _oldGenes, _newGenes);
+        uint256 oldGenes_ = mosaics[mosaicId_].genes;
+        mosaics[mosaicId_].genes = newGenes_;
+        emit MosaicEvolved(mosaicId_, oldGenes_, newGenes_);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal whenNotPaused override(ERC721, ERC721Enumerable) {
