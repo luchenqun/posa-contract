@@ -48,7 +48,7 @@ contract PreSell is Ownable {
 
     receive() external payable {}
 
-    // 购买限制
+    // 购买限制,exValue:购买金额，exRatio：购买单价
     modifier ensure(uint256 exValue, uint256 exRatio) {
         require(exValue % exRatio == 0, "PreSell: not an exact multiple");
         uint256 amount = exValue / exRatio;
