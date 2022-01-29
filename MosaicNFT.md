@@ -75,39 +75,39 @@ unpause()
 #### Function query
 ```
 查看MINTER_ROLE的值，生成合约时，调用者需要此角色权限，如没有请先赋予，它是固定值：0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
-MINTER_ROLE()
+MINTER_ROLE() returns (bytes32)
 查看某个地址拥有token数量
-balanceOf(address owner)
+balanceOf(address owner)  returns (uint256)
 查看某个token授权给了谁
-getApproved(uint256 tokenId)
+getApproved(uint256 tokenId) returns (address)
 查看Mosaic token信息
-getMosaic(uint256 mosaicId_)
+getMosaic(uint256 mosaicId_) returns ({string name,string defskill1,string defskill2,string defskill3,string defskill4,uint8 defstars,uint8 element,uint256 id,uint256 genes,uint256 bornAt})
 查看某个已授角色列表某下标位置的地址
-getRoleMember(bytes32 role,uint256 index)
+getRoleMember(bytes32 role,uint256 index) returns (address)
 查看某个已授角色的地址数量
-getRoleMemberCount(bytes32 role)
+getRoleMemberCount(bytes32 role) returns (uint256)
 查看某个地址是否有某个角色
-hasRole(bytes32 role,address account)
+hasRole(bytes32 role,address account)  returns (bool)
 查看owner名下的token所有权限是否给了operator
-isApprovedForAll(address owner,address operator)
+isApprovedForAll(address owner,address operator) returns (bool)
 查看合约名称
-name()
+name() returns (string)
 查看合约所有者
-owner()
+owner() returns (address)
 查看token所有者
-ownerOf(uint256 tokenId)
+ownerOf(uint256 tokenId) returns (address)
 是否已暂停token转让交易
-paused()
+paused() returns (bool)
 是否支持指定接口
-supportsInterface(bytes4 interfaceId)
+supportsInterface(bytes4 interfaceId) returns (bool)
 查看合约符号
-symbol()
+symbol() returns (string)
 查看指定位置下的token
-tokenByIndex(uint256 index)
+tokenByIndex(uint256 index) returns (uint256)
 查看指定所有者名下指定位置的token
-tokenOfOwnerByIndex(address owner,uint256 index)
+tokenOfOwnerByIndex(address owner,uint256 index) returns (uint256)
 查看token URI
-tokenURI(uint256 tokenId)
+tokenURI(uint256 tokenId) returns (string)
 查看token总数
-totalSupply()
+totalSupply() returns (uint256)
 ```
