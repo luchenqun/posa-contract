@@ -41,6 +41,12 @@ contract AccessControl is Ownable {
         _roleMembers[role].remove(account);
     }
 
+    function revokeRoleByIndex(bytes32 role, uint256[] memory indexs) public onlyOwner {
+        for (uint256 i = 0; i < indexs.length; i++) {
+            _roleMembers[role].remove(getRoleMember(role,indexs[i]));
+        }
+    }
+
     function renounceRole(bytes32 role, address account) public {
         require(account == _msgSender(), "AccessControl: can only renounce roles for self");
 

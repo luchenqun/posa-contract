@@ -74,7 +74,7 @@ unpause()
 
 #### Function query
 ```
-查看MINTER_ROLE的值，生成合约时，调用者需要此角色权限，如没有请先赋予，它是固定值：0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
+它是固定值：0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
 MINTER_ROLE() returns (bytes32)
 查看某个地址拥有token数量
 balanceOf(address owner)  returns (uint256)
@@ -110,4 +110,5 @@ tokenOfOwnerByIndex(address owner,uint256 index) returns (uint256)
 tokenURI(uint256 tokenId) returns (string)
 查看token总数
 totalSupply() returns (uint256)
+
 ```
