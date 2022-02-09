@@ -183,6 +183,9 @@ contract NFTSale is Ownable, Pausable {
     function isSale(address nftAddress,uint256 tokenId) public view returns (bool){
         return getSale(nftAddress,tokenId).sellerAddress != address(0);
     }
+    function isSeller(address sellerAddress,address nftAddress,uint256 tokenId) public view returns (bool){
+        return getSale(nftAddress,tokenId).sellerAddress == sellerAddress;
+    }
     function getPriceTokenAndPrice(address nftAddress,uint256 tokenId) public view returns (address priceToken, uint256 tokenPrice){
         Sale memory sale = getSale(nftAddress,tokenId);
         return (sale.priceToken, sale.tokenPrice);

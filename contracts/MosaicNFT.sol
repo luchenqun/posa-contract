@@ -3,6 +3,8 @@
 pragma solidity 0.8.4;
 
 import "./common/AccessControl.sol";
+import "./utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -10,11 +12,21 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     using Strings for uint256;
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
 
     mapping(uint256 => string) private _tokenURIs;
     mapping(uint256 => bool) private _frozenTokens;
     mapping(address => bool) private _frozenAddrs;
+    // List of addresses that have a number of reserved tokens for presale
+    mapping(address => uint16) public presaleAddresses;
+    mapping(uint256 => Mosaic) private mosaics;
+    mapping(string => uint256) private orderIds;
+    PayTokenPrice[] public payTokenPrices;
+    Payee[] public payees; // 收款人百分比
     string private baseURI;
+    // Starting and stopping sale and presale
+    bool public presaleActive;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
@@ -30,7 +42,17 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         uint256 genes;
         uint256 bornAt;
     }
-    mapping(uint256 => Mosaic) private mosaics;
+    // 收款对象结构体
+    struct Payee {
+        address payable beneficiary; // 收款人
+        uint16 percentage; // 收款百分比
+    }
+
+    // 预售支付币种及价格
+    struct PayTokenPrice {
+        address token; // 预售支付币种
+        uint256 price; // 预售支付价格
+    }
 
     event MosaicBorned(uint256 indexed mosaicId_, address indexed owner_, uint256 genes_);
     event MosaicRebirthed(uint256 indexed mosaicId_, uint256 genes_);
@@ -85,8 +107,14 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         _;
     }
 
+    modifier whenPresaleActive(){
+        require(presaleActive, "Presale not activated");
+        _;
+    }
+
     constructor(string memory name_, string memory symbol_, string memory baseURI_) ERC721(name_, symbol_) {
         baseURI = baseURI_;
+        _tokenIds.reset();
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
@@ -125,6 +153,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //新生mosaic
     function bornMosaic(
+        string memory orderId,
         string memory name,
         string memory defskill1,
         string memory defskill2,
@@ -132,13 +161,33 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         string memory defskill4,
         uint8 defstars,
         uint8 element,
-        uint256 mosaicId,
         uint256 genes,
-        address owner) external onlyOwnerOrRole(MINTER_ROLE) {
+        address owner) external onlyOwnerOrRole(MINTER_ROLE) returns (uint256){
+        return _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,owner);
+    }
+
+    //新生mosaic
+    function _bornMosaic(
+        string memory orderId,
+        string memory name,
+        string memory defskill1,
+        string memory defskill2,
+        string memory defskill3,
+        string memory defskill4,
+        uint8 defstars,
+        uint8 element,
+        uint256 genes,
+        address owner) private returns (uint256){
+        uint256 mosaicId = _tokenIds.incrementAndGet();
         Mosaic memory mosaic_ = Mosaic(name, defskill1, defskill2, defskill3, defskill4, defstars, element, mosaicId, genes, block.timestamp);
         mosaics[mosaicId] = mosaic_;
+        if(bytes(orderId).length > 0){
+            require(orderIds[orderId] == 0,"order id already exists");
+            orderIds[orderId] = mosaicId;
+        }
         _mint(owner, mosaicId);
         emit MosaicBorned(mosaicId, owner, genes);
+        return mosaicId;
     }
 
     //重生
@@ -151,11 +200,29 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         emit MosaicRebirthed(mosaicId_, genes_);
     }
 
+    //重生带订单ID
+    function rebirthMosaicByOrderId(uint256 mosaicId_, uint256 genes_, string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
+        require(mosaics[mosaicId_].bornAt != 0, "Rebirth: token nonexistent");
+        require(orderIds[orderId_] == 0,"order id already exists");
+        Mosaic storage _mosaic = mosaics[mosaicId_];
+        _mosaic.genes = genes_;
+        _mosaic.bornAt = block.timestamp;
+        emit MosaicRebirthed(mosaicId_, genes_);
+    }
+
     //消毁
     function retireMosaic(uint256 mosaicId_) external onlyOwnerOrRole(MINTER_ROLE) {
         _burn(mosaicId_);
-        delete(mosaics[mosaicId_]);
+        delete mosaics[mosaicId_];
+        emit MosaicRetired(mosaicId_);
+    }
 
+    //消毁带订单ID
+    function retireMosaicByOrderId(uint256 mosaicId_,string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
+        require(orderIds[orderId_] == mosaicId_,"order id already exists");
+        _burn(mosaicId_);
+        delete mosaics[mosaicId_];
+        delete orderIds[orderId_];
         emit MosaicRetired(mosaicId_);
     }
 
@@ -163,6 +230,15 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     function evolveMosaic(uint256 mosaicId_, uint256 newGenes_) external onlyOwnerOrRole(MINTER_ROLE) {
         require(mosaics[mosaicId_].bornAt != 0, "Evolve: token nonexistent");
 
+        uint256 oldGenes_ = mosaics[mosaicId_].genes;
+        mosaics[mosaicId_].genes = newGenes_;
+        emit MosaicEvolved(mosaicId_, oldGenes_, newGenes_);
+    }
+
+    //进化带订单ID
+    function evolveMosaicByOrderId(uint256 mosaicId_, uint256 newGenes_, string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
+        require(mosaics[mosaicId_].bornAt != 0, "Evolve: token nonexistent");
+        require(orderIds[orderId_] == 0,"order id already exists");
         uint256 oldGenes_ = mosaics[mosaicId_].genes;
         mosaics[mosaicId_].genes = newGenes_;
         emit MosaicEvolved(mosaicId_, oldGenes_, newGenes_);
@@ -215,4 +291,109 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     function addrFrozen(address addr) public view returns (bool) {
         return _frozenAddrs[addr];
     }
+
+    //开启或者关闭预售
+    function setPresaleActive(bool active) public onlyOwnerOrRole(MINTER_ROLE){
+        presaleActive = active;
+    }
+
+    //批量设置可铸造地址和数量
+    function setPresaleReservedAddresses(address[] memory addresses, uint16[] memory amounts) public onlyOwnerOrRole(MINTER_ROLE) {
+        require(addresses.length == amounts.length,"wrong number of parameters");
+        uint16 length = uint16(addresses.length);
+        for(uint16 i; i < length; i++){
+            presaleAddresses[addresses[i]] = amounts[i];
+        }
+    }
+    //预售支付的币种和对应的价格
+    function setPayTokenAndPrice(address[] memory tokens,uint256[] memory prices) public onlyOwnerOrRole(MINTER_ROLE) {
+        require(tokens.length == prices.length,"wrong number of parameters");
+        delete payTokenPrices;
+        uint16 length = uint16(tokens.length);
+        for(uint16 i; i < length; i++){
+            payTokenPrices.push(PayTokenPrice(tokens[i], prices[i]));
+        }
+    }
+
+    //查询 payTokenAndPrice的索引个数
+    function payTokenAndPriceCount() public view returns (uint256){
+        return payTokenPrices.length;
+    }
+
+    //按照某个索引查询预售支付的币种和对应的价格
+    function payTokenAndPriceByIndex(uint16 index) public view returns (PayTokenPrice memory){
+        return payTokenPrices[index];
+    }
+    //根据币种查价格
+    function getPriceByPayToken(address payToken) public view returns (uint256){
+        uint256 price;
+        for(uint16 i = 0; i < payTokenPrices.length; i++){
+            if(payTokenPrices[i].token == payToken ){
+                price = payTokenPrices[i].price;
+                break;
+            }
+        }
+        return price;
+    }
+
+    //设置预售订单的分成地址和比例
+    function setProfitSharing(address[] memory beneficiaries,uint16[] memory percentages) public onlyOwnerOrRole(MINTER_ROLE) {
+        require(beneficiaries.length == percentages.length, "beneficiaries.length should equal percentages.length");
+        uint256 total = 0;
+        for (uint256 i = 0; i < beneficiaries.length; i++) {
+            require(percentages[i] <= 100, "percentages must less than 100");
+            total += percentages[i];
+        }
+        require(total == 100, "percentages sum must 100");
+        delete payees;
+        for(uint256 i = 0; i < beneficiaries.length; i++) {
+            payees.push(Payee(payable(beneficiaries[i]), percentages[i]));
+        }
+    }
+    //根据分成地址获取分成比例
+    function getProfitSharing(address beneficiary) public view returns (uint16){
+        uint16 percentage;
+        for(uint16 i = 0;i < payees.length; i++){
+            if(payees[i].beneficiary == beneficiary){
+                percentage = payees[i].percentage;
+                break;
+            }
+        }
+        return percentage;
+    }
+
+    //由用户发起自己铸造已预订的预售订单所涉及的NFT
+    function bornPresaleMosaicByOrderId(
+        string memory orderId,
+        string memory name,
+        string memory defskill1,
+        string memory defskill2,
+        string memory defskill3,
+        string memory defskill4,
+        uint8 defstars,
+        uint8 element,
+        uint256 genes,
+        address payToken
+    ) public whenPresaleActive returns (uint256){
+        uint16 quantity = presaleAddresses[_msgSender()];
+        require(quantity > 0,"presale quantity must be greater than 0");
+        uint256 price = getPriceByPayToken(payToken);
+        require(price > 0,"presale price must be greater than 0");
+        uint256 totalProfit = quantity * price;
+        require(payees.length > 0,"profit sharing not set");
+
+        uint256 curSum = 0;
+        //利润分摊
+        for (uint256 i = 0; i < payees.length; i++) {
+            uint256 curAmount = (i == payees.length - 1) ? (totalProfit - curSum) : ((totalProfit * payees[i].percentage) / 100);
+            curSum += curAmount;
+            if(payToken == address(0)){
+                payees[i].beneficiary.transfer(curAmount);
+            }else{
+                IERC20(payToken).transfer(payees[i].beneficiary,curAmount);
+            }
+        }
+        return _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,_msgSender());
+    }
+
 }
