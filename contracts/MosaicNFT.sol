@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 
 import "./common/AccessControl.sol";
 import "./utils/Counters.sol";
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -162,8 +163,8 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         uint8 defstars,
         uint8 element,
         uint256 genes,
-        address owner) external onlyOwnerOrRole(MINTER_ROLE) returns (uint256){
-        return _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,owner);
+        address owner) external onlyOwnerOrRole(MINTER_ROLE) {
+        _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,owner);
     }
 
     //新生mosaic
@@ -177,8 +178,9 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         uint8 defstars,
         uint8 element,
         uint256 genes,
-        address owner) private returns (uint256){
+        address owner) private{
         uint256 mosaicId = _tokenIds.incrementAndGet();
+        console.log("mosaicId",mosaicId);
         Mosaic memory mosaic_ = Mosaic(name, defskill1, defskill2, defskill3, defskill4, defstars, element, mosaicId, genes, block.timestamp);
         mosaics[mosaicId] = mosaic_;
         if(bytes(orderId).length > 0){
@@ -187,7 +189,6 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         }
         _mint(owner, mosaicId);
         emit MosaicBorned(mosaicId, owner, genes);
-        return mosaicId;
     }
 
     //重生
@@ -374,7 +375,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         uint8 element,
         uint256 genes,
         address payToken
-    ) public whenPresaleActive returns (uint256){
+    ) public whenPresaleActive{
         uint16 quantity = presaleAddresses[_msgSender()];
         require(quantity > 0,"presale quantity must be greater than 0");
         uint256 price = getPriceByPayToken(payToken);
@@ -393,7 +394,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
                 IERC20(payToken).transfer(payees[i].beneficiary,curAmount);
             }
         }
-        return _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,_msgSender());
+        _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,_msgSender());
     }
 
 }
