@@ -205,7 +205,7 @@ contract IDO is Ownable {
         console.log("userUsdtAmount = ", userUsdtAmount);
         if (usdtAmount > userUsdtAmount) return ("IDO: User usdt is not enough"); // 用户usdt够不够
 
-        return "can buy success";
+        return "success";
     }
 
     // 使用usdt购买lkk
