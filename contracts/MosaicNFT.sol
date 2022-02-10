@@ -394,7 +394,10 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
                 IERC20(payToken).transfer(payees[i].beneficiary,curAmount);
             }
         }
+        //铸造token
         _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,_msgSender());
+        //删除可预售数量
+        delete presaleAddresses[_msgSender()];
     }
 
 }

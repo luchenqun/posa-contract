@@ -241,10 +241,10 @@ contract NFTSale is Ownable, Pausable {
         IERC721(nftAddress).transferFrom(sellerAddress,msg.sender, tokenId);
         //删除sale记录
         _deleteSale(sellerAddress,nftAddress,tokenId);
-        //总的手续费
-        uint256 feeAmount = sale.tokenPrice * fee / 10000;
         //卖家实收金额
-        uint256 actualAmount = sale.tokenPrice - feeAmount;
+        uint256 actualAmount = sale.tokenPrice * (10000 - fee) / 10000;
+        //总的手续费
+        uint256 feeAmount = sale.tokenPrice - actualAmount;
         //原生币
         if(sale.priceToken == address(0)){
             payable(sellerAddress).transfer(actualAmount);

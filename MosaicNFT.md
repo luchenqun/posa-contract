@@ -112,3 +112,31 @@ tokenURI(uint256 tokenId) returns (string)
 totalSupply() returns (uint256)
 
 ```
+
+#### Operator角色说明，对应需求方法说明
+```
+ 4.4 设定Operator的相关功能：（我方托管的账户为Operator权限）
+ 采用角色(MINTER_ROLE)，只有一个。进行授权控制
+
+ 4.4.1 setOperator：NFT合约的Owner将某个地址（或多个地址）设定为管理员Operator以便Operator可以执行铸造NFT等相关功能（用于我方后台托管账户用于执行盲盒铸造NFT等操作）， 
+ 对应方法为 grantRole  授权某个地址MINTER_ROLE
+
+ 4.4.2 isOperator：（通用）查询某个地址是否为Operator
+ 对应方法为 hasRole  查询某个地址是否有某个角色
+
+ 4.4.3 revokeOperator：（仅Owner）NFT合约的Owner将某个地址（或多个地址）移除Operator
+对应方法为 revokeRole 移除某个角色
+
+ 4.4.4 getOperatorCount：（通用）查询Operator索引个数
+ 对应方法为getRoleMemberCount
+ 
+ 4.4.5 getOperatorbyIndex：（通用）按照某个索引查询Operator的地址
+ 对应方法为getRoleMember
+ 
+ 4.4.6 revokeOperatorbyIndex：（仅Owner）按照某个索引（或多个索引）移除Operator
+ 对应方法为 revokeRoleByIndex
+ 
+ 4.4.7 renounceOperator：（Operator）移除自身的Operator权限
+对应方法为 renounceRole 放弃某个角色
+
+```
