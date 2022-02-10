@@ -42,9 +42,9 @@ contract IDO is Ownable {
 
     // 购买订单
     struct Balance {
-        address target; // 收款人
-        uint256 origin; // 原始金额
-        uint256 amount; // 金额
+        address target; // 收款人(LKK)
+        uint256 origin; // 购买LKK金额
+        uint256 amount; // 购买LKK总量
         uint256 deblock; // 解锁数量
         uint256 time; // 购买时间
         Currency currency; // 购买币种
@@ -82,8 +82,8 @@ contract IDO is Ownable {
 
     bool public pause; // 预售暂停
     Payee[] public payees; // 收款人百分比
-    mapping(address => Balance[]) public balances; // 户购买lkk订单
-    mapping(address => Deblock[]) public deblocks; // 户购买解锁lkk订单
+    mapping(address => Balance[]) public balances; // 用户购买lkk订单
+    mapping(address => Deblock[]) public deblocks; // 用户购买解锁lkk订单
 
     mapping(uint256 => address) public buyRecord; //订单ID-用户购买记录
     mapping(uint256 => address) public deblockRecord; //订单ID-用户解锁记录
@@ -232,7 +232,7 @@ contract IDO is Ownable {
         return true;
     }
 
-    // 解锁LKK
+    // 解锁LKK，用户操作从合约提取LKK到自己地址
     function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
         uint256 canDeblockAmount = canDeblockBalanceOf(msg.sender);
         require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
@@ -310,7 +310,7 @@ contract IDO is Ownable {
         uint256 amount = 0;
         uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
         if (gapTotal > 0) {
-            uint256 gapPer = deblockTime / deblockCount;
+            uint256 gapPer = deblockTime / deblockCount; //解锁间隔
             uint256 curDeblockCount = gapTotal / gapPer + 1;
             if (curDeblockCount > deblockCount) {
                 curDeblockCount = deblockCount;
