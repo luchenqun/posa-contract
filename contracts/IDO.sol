@@ -49,7 +49,9 @@ contract IDO is Ownable {
         uint256 time; // 购买时间
         Currency currency; // 购买币种
         uint256 releaseRatio; // 当时的解锁比例
+        uint256 deblockRatio; //解锁比例
         uint256 orderId; //订单ID
+        uint256 deblockCount; //线性解锁次数
     }
 
     // 解锁订单
@@ -71,9 +73,11 @@ contract IDO is Ownable {
     uint256 public perMaxBuy; // 每次最大购买
     uint256 public limitBuy; // 最大购买
     uint256 public releaseRatio; // 购买释放比例
+    uint256 public delockRatio; //解锁比例
     uint256 public lockTime; // 买了之后，封闭多长时间不允许提取，单位秒
-    uint256 public deblockTime; // 解锁时间长度，单位秒
+    //uint256 public deblockTime; // 解锁总时间长度，单位秒
     uint256 public deblockCount; // 在 deblockTime 可线性解锁多少次
+    uint256 public perBlockTime; //每次解锁间隔，单位秒
 
     uint256 public oriTokenToLkkRationNumerator; // 原生 token 兑换 lkk 比例分子
     uint256 public oriTokenToLkkRationDenominator; // 原生 token 兑换 lkk 比例分母
@@ -126,12 +130,14 @@ contract IDO is Ownable {
 
         releaseRatio = params[6];
         lockTime = params[7];
-        deblockTime = params[8];
-        deblockCount = params[9];
-        oriTokenToLkkRationNumerator = params[10];
-        oriTokenToLkkRationDenominator = params[11];
-        usdtToLkkRationNumerator = params[12];
-        usdtToLkkRationDenominator = params[13];
+        // deblockTime = params[8];
+        deblockCount = params[8];
+        oriTokenToLkkRationNumerator = params[9];
+        oriTokenToLkkRationDenominator = params[10];
+        usdtToLkkRationNumerator = params[11];
+        usdtToLkkRationDenominator = params[12];
+        delockRatio = params[13];
+        perBlockTime = params[14];
 
         pause = false;
 
@@ -181,7 +187,7 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, Currency.OriToken, releaseRatio, orderId));
+        _balances.push(Balance(msg.sender, value, lkkAmount, releaseAmount, block.timestamp, Currency.OriToken, releaseRatio, delockRatio,orderId,deblockCount));
         buyRecord[orderId] = msg.sender;
         return true;
     }
@@ -227,7 +233,7 @@ contract IDO is Ownable {
 
         presellTotal += lkkAmount;
         Balance[] storage _balances = balances[msg.sender];
-        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, Currency.USDT, releaseRatio, orderId));
+        _balances.push(Balance(msg.sender, usdtAmount, lkkAmount, releaseAmount, block.timestamp, Currency.USDT, releaseRatio, delockRatio,orderId,deblockCount));
         buyRecord[orderId] = msg.sender;
         return true;
     }
@@ -242,7 +248,8 @@ contract IDO is Ownable {
         Balance[] storage _balances = balances[msg.sender];
         for (uint256 i = 0; i < _balances.length; i++) {
             Balance memory balance = _balances[i];
-            uint256 curDeblock = canDeblockItemBalance(balance);
+            // uint256 curDeblock = canDeblockItemBalance(balance);
+            uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
             if (curDeblock > 0) {
                 total += curDeblock;
                 if (total <= amount) {
@@ -284,7 +291,7 @@ contract IDO is Ownable {
         return total;
     }
 
-    // 查询用户已经解锁了多少
+    // 查询用户已经解锁提取了多少
     function deblockBalanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
         Balance[] storage _balances = balances[src];
@@ -294,7 +301,7 @@ contract IDO is Ownable {
         return total;
     }
 
-    // 可解锁LKK总数量
+    // 地址可解锁LKK总数量，可以提取LKK总量
     function canDeblockBalanceOf(address src) public view returns (uint256) {
         uint256 total = 0;
         Balance[] memory _balances = balances[src];
@@ -310,8 +317,8 @@ contract IDO is Ownable {
         uint256 amount = 0;
         uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
         if (gapTotal > 0) {
-            uint256 gapPer = deblockTime / deblockCount; //解锁间隔
-            uint256 curDeblockCount = gapTotal / gapPer + 1;
+            // uint256 gapPer = deblockTime / deblockCount; //解锁间隔
+            uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
             if (curDeblockCount > deblockCount) {
                 curDeblockCount = deblockCount;
             }
@@ -326,6 +333,56 @@ contract IDO is Ownable {
                     amount = (deblockAmount - balance.deblock);
                 }
             }
+        }
+        return amount;
+    }
+
+    //按该订单解冻可提取数量
+    function canDeblockBalanceByDelockRatio(uint256 orderId) public view returns (uint256){
+        Balance memory balance;
+        address src = buyRecord[orderId];
+        Balance[] memory _balances = balances[src];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            if (_balances[i].orderId == orderId) {
+                balance = _balances[i];
+                break;
+            }
+        }
+        return canDeblockItemBalanceByDelockRatio(balance);
+    }
+
+    //查询该地址下所有订单可解锁可提取数量（按百分比解锁方式）
+    function canDeblockBalanceByAddr(address src) public view returns (uint256){
+        uint256 total = 0;
+        Balance[] memory _balances = balances[src];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            Balance memory balance = _balances[i];
+            total += canDeblockItemBalanceByDelockRatio(balance);
+        }
+        return total;
+    }
+
+    //查询该地址下单个订单可解锁可提取数量（按百分比解锁方式）
+    function canDeblockItemBalanceByDelockRatio(Balance memory balance) public view returns (uint256) {
+        uint256 amount = 0;
+        uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
+            if (gapTotal > 0) {
+
+                uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
+                if (curDeblockCount > deblockCount) {
+                    curDeblockCount = deblockCount;
+                }
+
+                if (curDeblockCount == deblockCount) {
+                    amount = (balance.amount - balance.deblock); // 此时剩下的全能解锁
+                } else {
+                    uint256 releaseAmount = (balance.amount * balance.releaseRatio) / 100; // 当时买了时候立马释放金额，为什么不用目前的 releaseRatio 呢？因为管理员可能会更改这个值
+                    uint256 deblockAmount = releaseAmount + ((balance.amount * balance.deblockRatio) /100) * curDeblockCount; // 总共到现在能解锁多少
+                    // 有可能因为更新锁定期解锁时长参数，导致已经解锁的比目前算出来能解锁的还要多
+                    if (deblockAmount > balance.deblock) {
+                        amount = (deblockAmount - balance.deblock);
+                    }
+                }
         }
         return amount;
     }
@@ -402,14 +459,18 @@ contract IDO is Ownable {
         releaseRatio = _releaseRatio;
     }
 
+    function updateDelockRatio(uint256 _delockRatio) public onlyOwner {
+        delockRatio = _delockRatio;
+    }
+
     function updateLockTime(uint256 _lockTime) public onlyOwner {
         lockTime = _lockTime;
     }
 
-    function updateDeblockTime(uint256 _deblockTime) public onlyOwner {
-        require(_deblockTime > deblockCount, "IDO: deblockTime shoud greater than deblockCount"); // 最多1s能解锁一次
-        deblockTime = _deblockTime;
-    }
+    // function updateDeblockTime(uint256 _deblockTime) public onlyOwner {
+    //     require(_deblockTime > deblockCount, "IDO: deblockTime shoud greater than deblockCount"); // 最多1s能解锁一次
+    //     deblockTime = _deblockTime;
+    // }
 
     function updateDeblockCount(uint256 _deblockCount) public onlyOwner {
         require(_deblockCount > 0, "IDO: deblockCount shoud greater than 0");

@@ -40,15 +40,20 @@ async function main() {
   }
 
   // ido 合约部署
-  if (!idoCfg.address) {
+  if (!(idoCfg.address)) {
     const IDO = await ethers.getContractFactory("IDO", idoCfg.signer);
-    const { name, targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator } = idoCfg;
-    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, targets, percentages, [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator]);
+    const { name, targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, 
+      lockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, 
+      usdtToLkkRationNumerator, usdtToLkkRationDenominator,delockRatio,perBlockTime } = idoCfg;
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, targets, percentages, 
+      [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockCount,
+         oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator,delockRatio,perBlockTime]);
     await ido.deployed();
     idoAddress = ido.address
     console.log("IDO Deploy", idoAddress)
   } else {
     idoAddress = idoCfg.address
+    console.log("IDO old address", idoAddress)
   }
 
   // preSell 合约部署
@@ -85,6 +90,7 @@ async function main() {
     const gameItemSellAddress = gameItemSell.address
     console.log("GameItemSell Deploy", gameItemSellAddress)
   }
+  
 }
 
 // We recommend this pattern to be able to use async/await everywhere
