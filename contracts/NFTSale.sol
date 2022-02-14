@@ -147,6 +147,14 @@ contract NFTSale is Ownable, Pausable {
         priceTokens = priceTokens_;
     }
 
+    function getPriceTokenLength() public view returns (uint256){
+        return priceTokens.length;
+    }
+
+    function getPriceToken(uint256 index) public view returns (address){
+        return priceTokens[index];
+    }
+
 /*    function withdraw20(address to) public onlyOwner{
 
     }
