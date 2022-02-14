@@ -351,7 +351,7 @@ contract IDO is Ownable {
         return canDeblockItemBalanceByDelockRatio(balance);
     }
 
-    //查询该地址下所有订单可解锁可提取数量（按百分比解锁方式）
+    //查询该地址下所有订单已解锁可提取数量（按百分比解锁方式）
     function canDeblockBalanceByAddr(address src) public view returns (uint256){
         uint256 total = 0;
         Balance[] memory _balances = balances[src];
@@ -369,11 +369,11 @@ contract IDO is Ownable {
             if (gapTotal > 0) {
 
                 uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
-                if (curDeblockCount > deblockCount) {
-                    curDeblockCount = deblockCount;
+                if (curDeblockCount > balance.deblockCount) {
+                    curDeblockCount = balance.deblockCount;
                 }
 
-                if (curDeblockCount == deblockCount) {
+                if (curDeblockCount == balance.deblockCount) {
                     amount = (balance.amount - balance.deblock); // 此时剩下的全能解锁
                 } else {
                     uint256 releaseAmount = (balance.amount * balance.releaseRatio) / 100; // 当时买了时候立马释放金额，为什么不用目前的 releaseRatio 呢？因为管理员可能会更改这个值
@@ -471,6 +471,11 @@ contract IDO is Ownable {
     //     require(_deblockTime > deblockCount, "IDO: deblockTime shoud greater than deblockCount"); // 最多1s能解锁一次
     //     deblockTime = _deblockTime;
     // }
+
+    function updatePerBlockTime(uint256 _perBlockTime) public onlyOwner {
+        require(_perBlockTime > deblockCount, "IDO: perBlockTime shoud greater than perBlockTime"); // 最多1s能解锁一次
+        perBlockTime = _perBlockTime;
+    }
 
     function updateDeblockCount(uint256 _deblockCount) public onlyOwner {
         require(_deblockCount > 0, "IDO: deblockCount shoud greater than 0");
