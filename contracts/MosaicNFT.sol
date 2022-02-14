@@ -148,8 +148,16 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         _unpause();
     }
 
+    // 根据mosaicId查询NFT卡片
     function getMosaic(uint256 mosaicId_) external view returns (Mosaic memory){
         return mosaics[mosaicId_];
+    }
+
+    // 根据订单ID查询tokenId
+    function getTokenId(string memory orderId_) external view returns (uint256){
+        require(orderIds[orderId_] != 0,"order id not exists");
+        uint256 tokenId = orderIds[orderId_];
+        return tokenId;
     }
 
     //新生mosaic
