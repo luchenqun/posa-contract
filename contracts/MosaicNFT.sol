@@ -388,24 +388,26 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         require(quantity > 0,"presale quantity must be greater than 0");
         uint256 price = getPriceByPayToken(payToken);
         require(price > 0,"presale price must be greater than 0");
-        uint256 totalProfit = quantity * price;
         require(payees.length > 0,"profit sharing not set");
+        //console.log("quantity:",quantity);
+        //console.log("price:",price);
 
         uint256 curSum = 0;
         //利润分摊
         for (uint256 i = 0; i < payees.length; i++) {
-            uint256 curAmount = (i == payees.length - 1) ? (totalProfit - curSum) : ((totalProfit * payees[i].percentage) / 100);
+            uint256 curAmount = (i == payees.length - 1) ? (price - curSum) : ((price * payees[i].percentage) / 100);
             curSum += curAmount;
+             //console.log("curAmount:",curAmount);
             if(payToken == address(0)){
                 payees[i].beneficiary.transfer(curAmount);
             }else{
-                IERC20(payToken).transfer(payees[i].beneficiary,curAmount);
+                IERC20(payToken).transferFrom(_msgSender(),payees[i].beneficiary,curAmount);
             }
         }
         //铸造token
         _bornMosaic(orderId,name,defskill1,defskill2,defskill3,defskill4,defstars,element,genes,_msgSender());
-        //删除可预售数量
-        delete presaleAddresses[_msgSender()];
+        //可预售数量-1
+        presaleAddresses[_msgSender()] -= 1;
     }
 
 }

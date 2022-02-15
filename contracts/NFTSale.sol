@@ -268,7 +268,7 @@ contract NFTSale is Ownable, Pausable {
             if(sale.priceToken == address(0)){
                 payees[i].beneficiary.transfer(curAmount);
             }else{
-                IERC20(sale.priceToken).transfer(payees[i].beneficiary,curAmount);
+                IERC20(sale.priceToken).transferFrom(_msgSender(),payees[i].beneficiary,curAmount);
             }
         }
 
