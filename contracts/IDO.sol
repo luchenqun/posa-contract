@@ -239,7 +239,7 @@ contract IDO is Ownable {
     }
 
     // 解锁LKK，用户操作从合约提取LKK到自己地址
-    function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
+    function deblockLkkByOrder(uint256 amount, uint256 orderId) external virtual returns (bool) {
         require(amount > 0, "IDO: amount shoud greater than 0");
         Balance[] storage _balances = balances[msg.sender];
         
@@ -263,38 +263,38 @@ contract IDO is Ownable {
         return false;
     }
 
-    // 解锁LKK，用户操作从合约提取LKK到自己地址
-    // function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
-    //     uint256 canDeblockAmount = canDeblockBalanceOf(msg.sender);
-    //     require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
-    //     require(amount > 0, "IDO: amount shoud greater than 0");
+    // 解锁LKK，用户操作从合约提取LKK到自己地址,注意orderId和购买的orderId并非一个
+    function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
+        uint256 canDeblockAmount = canDeblockBalanceByAddr(msg.sender);
+        require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
+        require(amount > 0, "IDO: amount shoud greater than 0");
 
-    //     uint256 total = 0;
-    //     Balance[] storage _balances = balances[msg.sender];
-    //     for (uint256 i = 0; i < _balances.length; i++) {
-    //         Balance memory balance = _balances[i];
-    //         // uint256 curDeblock = canDeblockItemBalance(balance);
-    //         uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
-    //         if (curDeblock > 0) {
-    //             total += curDeblock;
-    //             if (total <= amount) {
-    //                 _balances[i].deblock = _balances[i].deblock + curDeblock;
-    //             } else {
-    //                 _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
-    //                 break;
-    //             }
-    //         }
-    //     }
+        uint256 total = 0;
+        Balance[] storage _balances = balances[msg.sender];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            Balance memory balance = _balances[i];
+            // uint256 curDeblock = canDeblockItemBalance(balance);
+            uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
+            if (curDeblock > 0) {
+                total += curDeblock;
+                if (total <= amount) {
+                    _balances[i].deblock = _balances[i].deblock + curDeblock;
+                } else {
+                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
+                    break;
+                }
+            }
+        }
 
-    //     ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
+        ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
 
-    //     // 记录解锁信息
-    //     Deblock[] storage _deblocks = deblocks[msg.sender];
-    //     _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
-    //     deblockRecord[orderId] = msg.sender;
+        // 记录解锁信息
+        Deblock[] storage _deblocks = deblocks[msg.sender];
+        _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
+        deblockRecord[orderId] = msg.sender;
 
-    //     return true;
-    // }
+        return true;
+    }
 
     // 查询用户购买了多少
     function balanceOf(address src) public view returns (uint256) {
@@ -313,6 +313,8 @@ contract IDO is Ownable {
         for (uint256 i = 0; i < _balances.length; i++) {
             total += (_balances[i].amount - _balances[i].deblock);
         }
+        //此处total=锁仓+可提取，故需要减去可提取的量才锁锁仓
+        total = total - canDeblockBalanceByAddr(src);
         return total;
     }
 
@@ -448,7 +450,7 @@ contract IDO is Ownable {
 
 
     // 查看订单已提取量
-    function deblockAmoutByOrder( uint256 orderId) public view returns (uint256) {
+    function deblockAmountByOrder( uint256 orderId) public view returns (uint256) {
         Balance memory balance;
         address src = buyRecord[orderId];
         Balance[] memory _balances = balances[src];
