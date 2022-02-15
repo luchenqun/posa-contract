@@ -240,36 +240,61 @@ contract IDO is Ownable {
 
     // 解锁LKK，用户操作从合约提取LKK到自己地址
     function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
-        uint256 canDeblockAmount = canDeblockBalanceOf(msg.sender);
-        require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
         require(amount > 0, "IDO: amount shoud greater than 0");
-
-        uint256 total = 0;
         Balance[] storage _balances = balances[msg.sender];
+        
         for (uint256 i = 0; i < _balances.length; i++) {
-            Balance memory balance = _balances[i];
-            // uint256 curDeblock = canDeblockItemBalance(balance);
-            uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
-            if (curDeblock > 0) {
-                total += curDeblock;
-                if (total <= amount) {
-                    _balances[i].deblock = _balances[i].deblock + curDeblock;
-                } else {
-                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
-                    break;
-                }
+            if (_balances[i].orderId == orderId) {
+                require(_balances[i].target == msg.sender,"Caller is not owner");
+                Balance memory balance = _balances[i];
+                uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
+                require(curDeblock > 0,"Insufficient balance");
+                require(curDeblock >= amount,"Insufficient balance");
+                _balances[i].deblock = _balances[i].deblock + amount;
+                ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
+
+                // 记录解锁信息
+                Deblock[] storage _deblocks = deblocks[msg.sender];
+                _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
+                deblockRecord[orderId] = msg.sender;
+                return true;
             }
         }
-
-        ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
-
-        // 记录解锁信息
-        Deblock[] storage _deblocks = deblocks[msg.sender];
-        _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
-        deblockRecord[orderId] = msg.sender;
-
-        return true;
+        return false;
     }
+
+    // 解锁LKK，用户操作从合约提取LKK到自己地址
+    // function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
+    //     uint256 canDeblockAmount = canDeblockBalanceOf(msg.sender);
+    //     require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
+    //     require(amount > 0, "IDO: amount shoud greater than 0");
+
+    //     uint256 total = 0;
+    //     Balance[] storage _balances = balances[msg.sender];
+    //     for (uint256 i = 0; i < _balances.length; i++) {
+    //         Balance memory balance = _balances[i];
+    //         // uint256 curDeblock = canDeblockItemBalance(balance);
+    //         uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
+    //         if (curDeblock > 0) {
+    //             total += curDeblock;
+    //             if (total <= amount) {
+    //                 _balances[i].deblock = _balances[i].deblock + curDeblock;
+    //             } else {
+    //                 _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
+    //                 break;
+    //             }
+    //         }
+    //     }
+
+    //     ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
+
+    //     // 记录解锁信息
+    //     Deblock[] storage _deblocks = deblocks[msg.sender];
+    //     _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
+    //     deblockRecord[orderId] = msg.sender;
+
+    //     return true;
+    // }
 
     // 查询用户购买了多少
     function balanceOf(address src) public view returns (uint256) {
@@ -301,41 +326,41 @@ contract IDO is Ownable {
         return total;
     }
 
-    // 地址可解锁LKK总数量，可以提取LKK总量
-    function canDeblockBalanceOf(address src) public view returns (uint256) {
-        uint256 total = 0;
-        Balance[] memory _balances = balances[src];
-        for (uint256 i = 0; i < _balances.length; i++) {
-            Balance memory balance = _balances[i];
-            total += canDeblockItemBalance(balance);
-        }
-        return total;
-    }
+    // // 地址可解锁LKK总数量，可以提取LKK总量
+    // function canDeblockBalanceOf(address src) public view returns (uint256) {
+    //     uint256 total = 0;
+    //     Balance[] memory _balances = balances[src];
+    //     for (uint256 i = 0; i < _balances.length; i++) {
+    //         Balance memory balance = _balances[i];
+    //         total += canDeblockItemBalance(balance);
+    //     }
+    //     return total;
+    // }
 
-    // 单条(用户单个订单)可解锁LKK数量
-    function canDeblockItemBalance(Balance memory balance) public view returns (uint256) {
-        uint256 amount = 0;
-        uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
-        if (gapTotal > 0) {
-            // uint256 gapPer = deblockTime / deblockCount; //解锁间隔
-            uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
-            if (curDeblockCount > deblockCount) {
-                curDeblockCount = deblockCount;
-            }
+    // // 单条(用户单个订单)可解锁LKK数量
+    // function canDeblockItemBalance(Balance memory balance) public view returns (uint256) {
+    //     uint256 amount = 0;
+    //     uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
+    //     if (gapTotal > 0) {
+    //         // uint256 gapPer = deblockTime / deblockCount; //解锁间隔
+    //         uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
+    //         if (curDeblockCount > deblockCount) {
+    //             curDeblockCount = deblockCount;
+    //         }
 
-            if (curDeblockCount == deblockCount) {
-                amount = (balance.amount - balance.deblock); // 此时剩下的全能解锁
-            } else {
-                uint256 releaseAmount = (balance.amount * balance.releaseRatio) / 100; // 当时买了时候立马释放金额，为什么不用目前的 releaseRatio 呢？因为管理员可能会更改这个值
-                uint256 deblockAmount = releaseAmount + ((balance.amount - releaseAmount) / deblockCount) * curDeblockCount; // 总共到现在能解锁多少
-                // 有可能因为更新锁定期解锁时长参数，导致已经解锁的比目前算出来能解锁的还要多
-                if (deblockAmount > balance.deblock) {
-                    amount = (deblockAmount - balance.deblock);
-                }
-            }
-        }
-        return amount;
-    }
+    //         if (curDeblockCount == deblockCount) {
+    //             amount = (balance.amount - balance.deblock); // 此时剩下的全能解锁
+    //         } else {
+    //             uint256 releaseAmount = (balance.amount * balance.releaseRatio) / 100; // 当时买了时候立马释放金额，为什么不用目前的 releaseRatio 呢？因为管理员可能会更改这个值
+    //             uint256 deblockAmount = releaseAmount + ((balance.amount - releaseAmount) / deblockCount) * curDeblockCount; // 总共到现在能解锁多少
+    //             // 有可能因为更新锁定期解锁时长参数，导致已经解锁的比目前算出来能解锁的还要多
+    //             if (deblockAmount > balance.deblock) {
+    //                 amount = (deblockAmount - balance.deblock);
+    //             }
+    //         }
+    //     }
+    //     return amount;
+    // }
 
     //按该订单解冻可提取数量
     function canDeblockBalanceByDelockRatio(uint256 orderId) public view returns (uint256){
@@ -419,6 +444,21 @@ contract IDO is Ownable {
         Deblock[] memory _deblocks = deblocks[src];
         require(_deblocks.length > i, "IDO: _deblocks length shoud greater than index"); // 最多1s能解锁一次
         return _deblocks[i];
+    }
+
+
+    // 查看订单已提取量
+    function deblockAmoutByOrder( uint256 orderId) public view returns (uint256) {
+        Balance memory balance;
+        address src = buyRecord[orderId];
+        Balance[] memory _balances = balances[src];
+        for (uint256 i = 0; i < _balances.length; i++) {
+            if (_balances[i].orderId == orderId) {
+                balance = _balances[i];
+                break;
+            }
+        }
+        return balance.deblock;
     }
 
     // 根据解锁ID查询用户的解锁详情
