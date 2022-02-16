@@ -246,7 +246,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     }
 
     //用户资产下链
-    function redeemMosaicbyOrderId(uint256 mosaicId_,string memory orderId_)  external onlyOwnerToken{
+    function redeemMosaicbyOrderId(uint256 mosaicId_,string memory orderId_)  external onlyOwnerToken(mosaicId_){
         require(orderIds[orderId_] == mosaicId_,"order id already exists");
         _burn(mosaicId_);
         delete mosaics[mosaicId_];
