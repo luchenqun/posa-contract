@@ -257,8 +257,9 @@ contract NFTSale is Ownable, Pausable {
         if(sale.priceToken == address(0)){
             payable(sellerAddress).transfer(actualAmount);
         }else{
-        //合约币
-            IERC20(sale.priceToken).transfer(sellerAddress, actualAmount);
+            //合约币
+//            IERC20(sale.priceToken).transfer(sellerAddress, actualAmount);
+            IERC20(sale.priceToken).transferFrom(_msgSender(), sellerAddress, actualAmount);
         }
         uint256 curSum = 0;
         //手续费分摊
