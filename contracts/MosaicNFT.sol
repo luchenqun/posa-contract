@@ -63,6 +63,16 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     event MosaicUnFreeze(uint256 indexed mosaicId_);
     event MosaicOwnerFreeze(address indexed owner_);
     event MosaicOwnerUnFreeze(address indexed owner_);
+
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwnerToken(uint256 tokenId){
+        require(super.ownerOf(tokenId) == _msgSender(),"Caller not owner account");
+        _;
+    }
+
     /**
      * @dev Throws if called by any account other than the owner or special role.
      */
@@ -228,6 +238,15 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //消毁带订单ID
     function retireMosaicByOrderId(uint256 mosaicId_,string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
+        require(orderIds[orderId_] == mosaicId_,"order id already exists");
+        _burn(mosaicId_);
+        delete mosaics[mosaicId_];
+        delete orderIds[orderId_];
+        emit MosaicRetired(mosaicId_);
+    }
+
+    //用户资产下链
+    function redeemMosaicbyOrderId(uint256 mosaicId_,string memory orderId_)  external onlyOwnerToken{
         require(orderIds[orderId_] == mosaicId_,"order id already exists");
         _burn(mosaicId_);
         delete mosaics[mosaicId_];
