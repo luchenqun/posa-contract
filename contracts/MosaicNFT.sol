@@ -64,15 +64,6 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     event MosaicOwnerFreeze(address indexed owner_);
     event MosaicOwnerUnFreeze(address indexed owner_);
 
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwnerToken(uint256 tokenId){
-        require(super.ownerOf(tokenId) == _msgSender(),"Caller not owner account");
-        _;
-    }
-
     /**
      * @dev Throws if called by any account other than the owner or special role.
      */
@@ -87,7 +78,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
      * Requirements: The mosaic token must not be frozen.
      */
     modifier whenMosaicNotFrozen(uint256 tokenId) {
-        require(!mosaicFrozen(tokenId), "Mosaic freezable: frozen");
+        require(!mosaicFrozen(tokenId), "frozen");
         _;
     }
 
@@ -96,7 +87,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
      * Requirements: The mosaic token must be frozen.
      */
     modifier whenMosaicFrozen(uint256 tokenId) {
-        require(mosaicFrozen(tokenId), "Mosaic freezable: not frozen");
+        require(mosaicFrozen(tokenId), "not frozen");
         _;
     }
 
@@ -202,7 +193,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
         Mosaic memory mosaic_ = Mosaic(name, defskill1, defskill2, defskill3, defskill4, defstars, element, mosaicId, genes, block.timestamp);
         mosaics[mosaicId] = mosaic_;
         if(bytes(orderId).length > 0){
-            require(orderIds[orderId] == 0,"order id already exists");
+            require(orderIds[orderId] == 0,"orderId already exists");
             orderIds[orderId] = mosaicId;
         }
         _mint(owner, mosaicId);
@@ -210,19 +201,19 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     }
 
     //重生
-    function rebirthMosaic(uint256 mosaicId_, uint256 genes_) external onlyOwnerOrRole(MINTER_ROLE) {
-        require(mosaics[mosaicId_].bornAt != 0, "Rebirth: token nonexistent");
+    // function rebirthMosaic(uint256 mosaicId_, uint256 genes_) external onlyOwnerOrRole(MINTER_ROLE) {
+    //     require(mosaics[mosaicId_].bornAt != 0, "token nonexistent");
 
-        Mosaic storage _mosaic = mosaics[mosaicId_];
-        _mosaic.genes = genes_;
-        _mosaic.bornAt = block.timestamp;
-        emit MosaicRebirthed(mosaicId_, genes_);
-    }
+    //     Mosaic storage _mosaic = mosaics[mosaicId_];
+    //     _mosaic.genes = genes_;
+    //     _mosaic.bornAt = block.timestamp;
+    //     emit MosaicRebirthed(mosaicId_, genes_);
+    // }
 
     //重生带订单ID
     function rebirthMosaicByOrderId(uint256 mosaicId_, uint256 genes_, string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
-        require(mosaics[mosaicId_].bornAt != 0, "Rebirth: token nonexistent");
-        require(orderIds[orderId_] == 0,"order id already exists");
+        require(mosaics[mosaicId_].bornAt != 0, "token nonexistent");
+        require(orderIds[orderId_] == 0,"orderId already exists");
         Mosaic storage _mosaic = mosaics[mosaicId_];
         _mosaic.genes = genes_;
         _mosaic.bornAt = block.timestamp;
@@ -238,7 +229,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //消毁带订单ID
     function retireMosaicByOrderId(uint256 mosaicId_,string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
-        require(orderIds[orderId_] == mosaicId_,"order id already exists");
+        require(orderIds[orderId_] == mosaicId_,"orderId already exists");
         _burn(mosaicId_);
         delete mosaics[mosaicId_];
         delete orderIds[orderId_];
@@ -246,8 +237,9 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
     }
 
     //用户资产下链
-    function redeemMosaicbyOrderId(uint256 mosaicId_,string memory orderId_)  external onlyOwnerToken(mosaicId_){
-        require(orderIds[orderId_] == mosaicId_,"order id already exists");
+    function redeemMosaicbyOrderId(uint256 mosaicId_,string memory orderId_)  external{
+        require(super.ownerOf(mosaicId_) == _msgSender(),"Caller not owner");
+        require(orderIds[orderId_] == mosaicId_,"orderId already exists");
         _burn(mosaicId_);
         delete mosaics[mosaicId_];
         delete orderIds[orderId_];
@@ -256,7 +248,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //进化
     function evolveMosaic(uint256 mosaicId_, uint256 newGenes_) external onlyOwnerOrRole(MINTER_ROLE) {
-        require(mosaics[mosaicId_].bornAt != 0, "Evolve: token nonexistent");
+        require(mosaics[mosaicId_].bornAt != 0, "token nonexistent");
 
         uint256 oldGenes_ = mosaics[mosaicId_].genes;
         mosaics[mosaicId_].genes = newGenes_;
@@ -265,8 +257,8 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //进化带订单ID
     function evolveMosaicByOrderId(uint256 mosaicId_, uint256 newGenes_, string memory orderId_) external onlyOwnerOrRole(MINTER_ROLE) {
-        require(mosaics[mosaicId_].bornAt != 0, "Evolve: token nonexistent");
-        require(orderIds[orderId_] == 0,"order id already exists");
+        require(mosaics[mosaicId_].bornAt != 0, "token nonexistent");
+        require(orderIds[orderId_] == 0,"orderId already exists");
         uint256 oldGenes_ = mosaics[mosaicId_].genes;
         mosaics[mosaicId_].genes = newGenes_;
         emit MosaicEvolved(mosaicId_, oldGenes_, newGenes_);
@@ -366,7 +358,7 @@ contract MosaicNFT is ERC721, ERC721Enumerable, Pausable, AccessControl {
 
     //设置预售订单的分成地址和比例
     function setProfitSharing(address[] memory beneficiaries,uint16[] memory percentages) public onlyOwnerOrRole(MINTER_ROLE) {
-        require(beneficiaries.length == percentages.length, "beneficiaries.length should equal percentages.length");
+        require(beneficiaries.length == percentages.length, "beneficiaries.length != percentages.length");
         uint256 total = 0;
         for (uint256 i = 0; i < beneficiaries.length; i++) {
             require(percentages[i] <= 100, "percentages must less than 100");
