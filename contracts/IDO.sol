@@ -173,7 +173,6 @@ contract IDO is Ownable {
         uint256 value = msg.value;
         uint256 lkkAmount = (oriTokenToLkkRationNumerator * value) / oriTokenToLkkRationDenominator;
         uint256 releaseAmount = (lkkAmount * releaseRatio) / 100;
-
         // 打lkk给用户
         ILKKToken(lkkAddress).transfer(msg.sender, releaseAmount);
 
@@ -239,12 +238,12 @@ contract IDO is Ownable {
     }
 
     // 解锁LKK，用户操作从合约提取LKK到自己地址
-    function deblockLkkByOrder(uint256 amount, uint256 orderId) external virtual returns (bool) {
+    function deblockLkkByOrder(uint256 amount, uint256 buyOrderId,uint256 orderId) external virtual returns (bool) {
         require(amount > 0, "IDO: amount shoud greater than 0");
         Balance[] storage _balances = balances[msg.sender];
         
         for (uint256 i = 0; i < _balances.length; i++) {
-            if (_balances[i].orderId == orderId) {
+            if (_balances[i].orderId == buyOrderId) {
                 require(_balances[i].target == msg.sender,"Caller is not owner");
                 Balance memory balance = _balances[i];
                 uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
@@ -273,7 +272,6 @@ contract IDO is Ownable {
         Balance[] storage _balances = balances[msg.sender];
         for (uint256 i = 0; i < _balances.length; i++) {
             Balance memory balance = _balances[i];
-            // uint256 curDeblock = canDeblockItemBalance(balance);
             uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
             if (curDeblock > 0) {
                 total += curDeblock;
@@ -313,7 +311,7 @@ contract IDO is Ownable {
         for (uint256 i = 0; i < _balances.length; i++) {
             total += (_balances[i].amount - _balances[i].deblock);
         }
-        //此处total=锁仓+可提取，故需要减去可提取的量才锁锁仓
+        //此处total=锁仓+可提取，故需要减去可提取的量才是锁仓
         total = total - canDeblockBalanceByAddr(src);
         return total;
     }
