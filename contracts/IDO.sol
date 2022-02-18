@@ -241,7 +241,7 @@ contract IDO is Ownable {
     function deblockLkkByOrder(uint256 amount, uint256 buyOrderId,uint256 orderId) external virtual returns (bool) {
         require(amount > 0, "IDO: amount shoud greater than 0");
         Balance[] storage _balances = balances[msg.sender];
-        
+
         for (uint256 i = 0; i < _balances.length; i++) {
             if (_balances[i].orderId == buyOrderId) {
                 require(_balances[i].target == msg.sender,"Caller is not owner");
@@ -265,30 +265,24 @@ contract IDO is Ownable {
     // 解锁LKK，用户操作从合约提取LKK到自己地址,注意orderId和购买的orderId并非一个
     function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
         uint256 canDeblockAmount = canDeblockBalanceByAddr(msg.sender);
-        require(canDeblockAmount >= amount, "IDO: canDeblockAmount shoud greater than amount");
-        require(amount > 0, "IDO: amount shoud greater than 0");
+        require(canDeblockAmount >= 0, "IDO: canDeblockAmount shoud greater than amount");
 
-        uint256 total = 0;
+        uint256 total = 0; // 可解锁的总量
         Balance[] storage _balances = balances[msg.sender];
         for (uint256 i = 0; i < _balances.length; i++) {
             Balance memory balance = _balances[i];
             uint256 curDeblock = canDeblockItemBalanceByDelockRatio(balance);
-            if (curDeblock > 0) {
-                total += curDeblock;
-                if (total <= amount) {
-                    _balances[i].deblock = _balances[i].deblock + curDeblock;
-                } else {
-                    _balances[i].deblock = _balances[i].deblock + (total - amount); // 解锁一部分
-                    break;
-                }
-            }
+            _balances[i].deblock = _balances[i].deblock + curDeblock;
+            total += curDeblock;
         }
 
-        ILKKToken(lkkAddress).transfer(msg.sender, amount); // 打lkk给用户
+        // 打lkk给用户
+        require(total > 0, "IDO: canDeblockAmount shoud greater than 0");
+        ILKKToken(lkkAddress).transfer(msg.sender, total);
 
         // 记录解锁信息
         Deblock[] storage _deblocks = deblocks[msg.sender];
-        _deblocks.push(Deblock(msg.sender, amount, block.timestamp, orderId));
+        _deblocks.push(Deblock(msg.sender, total, block.timestamp, orderId));
         deblockRecord[orderId] = msg.sender;
 
         return true;
@@ -343,7 +337,7 @@ contract IDO is Ownable {
     //     uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
     //     if (gapTotal > 0) {
     //         // uint256 gapPer = deblockTime / deblockCount; //解锁间隔
-    //         uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
+    //         uint256 curDeblockCount = gapTotal / perBlockTime + 1;
     //         if (curDeblockCount > deblockCount) {
     //             curDeblockCount = deblockCount;
     //         }
@@ -393,7 +387,7 @@ contract IDO is Ownable {
         uint256 gapTotal = block.timestamp > (balance.time + lockTime) ? block.timestamp - (balance.time + lockTime) : 0;
             if (gapTotal > 0) {
 
-                uint256 curDeblockCount = gapTotal / perBlockTime + 1; 
+                uint256 curDeblockCount = gapTotal / perBlockTime + 1;
                 if (curDeblockCount > balance.deblockCount) {
                     curDeblockCount = balance.deblockCount;
                 }
