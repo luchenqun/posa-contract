@@ -263,7 +263,7 @@ contract IDO is Ownable {
     }
 
     // 解锁LKK，用户操作从合约提取LKK到自己地址,注意orderId和购买的orderId并非一个
-    function deblockLkk(uint256 amount, uint256 orderId) external virtual returns (bool) {
+    function deblockLkkByOrderId(uint256 orderId) external virtual returns (bool) {
         uint256 canDeblockAmount = canDeblockBalanceByAddr(msg.sender);
         require(canDeblockAmount >= 0, "IDO: canDeblockAmount shoud greater than amount");
 
