@@ -7,7 +7,7 @@ const hre = require("hardhat");
 const { ethers } = hre
 const { utils } = ethers;
 const config = require("./config.js")
-let { usdtCfg, lkkCfg, idoCfg, preSellCfg, gameItemCfg, gameItemSellCfg } = config
+let { usdtCfg, lkkCfg, idoCfg, preSellCfg, gameItemCfg, gameItemSellCfg, nftSaleConfig, mosaicNFTCfg, changerMachineConfig } = config
 
 const toWei = (ether) => {
   return utils.parseEther(String(ether)).toString()
@@ -42,10 +42,10 @@ async function main() {
   // ido 合约部署
   if (!(idoCfg.address)) {
     const IDO = await ethers.getContractFactory("IDO", idoCfg.signer);
-    const { name, targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, 
-      lockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, 
+    const { name, targets, percentages, presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio,
+      lockTime, deblockCount, oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator,
       usdtToLkkRationNumerator, usdtToLkkRationDenominator,delockRatio,perBlockTime } = idoCfg;
-    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, targets, percentages, 
+    const ido = await IDO.deploy(name, usdtAddress, lkkAddress, targets, percentages,
       [presellMax, beginTime, endTime, perMinBuy, perMaxBuy, limitBuy, releaseRatio, lockTime, deblockCount,
          oriTokenToLkkRationNumerator, oriTokenToLkkRationDenominator, usdtToLkkRationNumerator, usdtToLkkRationDenominator,delockRatio,perBlockTime]);
     await ido.deployed();
@@ -90,7 +90,37 @@ async function main() {
     const gameItemSellAddress = gameItemSell.address
     console.log("GameItemSell Deploy", gameItemSellAddress)
   }
-  
+
+  // NFTSale 合约部署
+  if (!nftSaleConfig.address) {
+    const NFTSale = await ethers.getContractFactory("NFTSale", nftSaleConfig.signer);
+    const { fee, priceTokens, beneficiaries, percentages } = nftSaleConfig
+    sale = await NFTSale.deploy(fee, priceTokens, beneficiaries, percentages);
+    await sale.deployed();
+    const nftSaleAddress = sale.address
+    console.log("NFTSale deployed to:", nftSaleAddress);
+  }
+
+  // mosaicNFT 合约部署
+  if (!mosaicNFTCfg.address) {
+    const baseUrl = "https://ido.tst.qianqianshijie.com/"; // 默认配置地址
+    const NFT = await ethers.getContractFactory("MosaicNFT", mosaicNFTCfg.signer);
+    nft = await NFT.deploy("mosaic","mosaic", baseUrl);
+    await nft.deployed();
+    console.log("MosaicNFT deployed to:", nft.address);
+    MINTER_ROLE = await nft.MINTER_ROLE();
+    console.log("MosaicNFT MINTER_ROLE Hash:", MINTER_ROLE);
+  }
+
+  // ChangerMachine 合约部署
+  if (!changerMachineConfig.address) {
+    const ChangerMachine = await ethers.getContractFactory("ChangerMachine", mosaicNFTCfg.signer);
+    const { beneficiaries, percentages } = changerMachineConfig
+    changerMachine = await ChangerMachine.deploy(usdtAddress, beneficiaries, percentages);
+    await changerMachine.deployed();
+    console.log("ChangerMachine deployed to:", changerMachine.address);
+  }
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
