@@ -50,7 +50,7 @@ module.exports = {
       }
     }
   },
-  defaultNetwork: "hardhat", // hardhat localhost
+  defaultNetwork: "localhost", // hardhat localhost
   networks: {
     hardhat: {
       accounts: [
@@ -65,8 +65,7 @@ module.exports = {
       ],
     },
     localhost: {
-      url: "http://127.0.0.1:40000",
-      chainId: 1024,
+      url: "http://127.0.0.1:8545",
       gasPrice: 5000000000,
       accounts: [
         "f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769",

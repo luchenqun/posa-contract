@@ -13,3 +13,4 @@ yarn.lock
 scripts/config.js
 /flatten/*
 !/flatten/.gitkeep
+/contracts-bak
