@@ -13,12 +13,12 @@ contract BSCValidatorSet {
     }
 
     struct Record {
-        Type t; // 类型
-        address node; // 质押节点地址
-        address user; // 质押或投票人地址
+        Type t;         // 类型
+        address node;   // 质押节点地址
+        address user;   // 质押或投票人地址
         uint256 amount; // 质押或者投票金额
-        uint256 time; // 时间
-        bool back; // 钱是否取回来了
+        uint256 time;   // 时间
+        bool back;      // 钱是否取回来了
     }
 
     // 排序用一下
@@ -169,7 +169,7 @@ contract BSCValidatorSet {
             Item[] memory items = new Item[](nodes.length);
 
             for (uint256 i = 0; i < nodes.length; i++) {
-                items[i] = Item(nodes[i], totalCandidateAmount(nodes[i], number - EPOCH)); 
+                items[i] = Item(nodes[i], totalCandidateAmount(nodes[i], number - EPOCH));
             }
 
             // for (uint256 i = 0; i < nodes.length; i++) {

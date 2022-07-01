@@ -78,9 +78,8 @@ module.exports = {
         "a78e6fe4fe2c66a594fdd639b39bd0064d7cefbbebf43b57de153392b0f4e30c"
       ],
     },
-    probe: {
-      url: "http://47.103.26.129:40000",
-      chainId: 1024,
+    posa: {
+      url: "http://govnode.lucq.fun",
       gasPrice: 5000000000,
       accounts: [
         "f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769",
