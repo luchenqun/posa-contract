@@ -32,17 +32,19 @@ contract BSCValidatorSet {
 
     // 质押
     function stake(address node) external payable {
-        require((block.number + (1 % EPOCH)) != 0, "soon in the next epoch, forbid stake");
-        uint256 epochIndex = (block.number > 0 ? block.number - 1 : 0) / EPOCH;
+        require((block.number + 1) % EPOCH != 0, "soon in the next epoch, forbid stake");
+        require(msg.value != 0, "stake value must greater than 0");
+        uint256 epochIndex = block.number / EPOCH;
         Record[] storage _records = records[epochIndex];
         _records.push(Record(Type.Stake, node, msg.sender, msg.value, block.timestamp, false));
     }
 
     // 委托
     function delegate(address node) external payable {
-        require((block.number + (1 % EPOCH)) != 0, "soon in the next epoch, forbid delegate");
+        require((block.number + 1) % EPOCH != 0, "soon in the next epoch, forbid delegate");
         require(hasCandidate(node, block.number) == true, "Candidate is not exit");
-        uint256 epochIndex = (block.number > 0 ? block.number - 1 : 0) / EPOCH;
+        require(msg.value != 0, "delegate value must greater than 0");
+        uint256 epochIndex = block.number / EPOCH;
         Record[] storage _records = records[epochIndex];
         _records.push(Record(Type.Delegate, node, msg.sender, msg.value, block.timestamp, false));
     }
@@ -51,23 +53,29 @@ contract BSCValidatorSet {
     function withdraw(uint256 epochIndex) external payable {
         uint256 curEpochIndex = block.number / EPOCH;
         require(curEpochIndex > epochIndex, "please withdraw in next epoch");
-        
+
         Record[] storage _records = records[epochIndex];
         uint256 amount = 0;
         for (uint256 i = 0; i < _records.length; i++) {
             address curUser = _records[i].user;
             bool back = _records[i].back;
-            amount += (curUser == msg.sender && !back) ? _records[i].amount : 0;
-            _records[i].back = true;
+            if (curUser == msg.sender && !back) {
+                amount += _records[i].amount;
+                _records[i].back = true;
+            }
         }
         payable(msg.sender).transfer(amount);
     }
 
-    // 质押与委托金额之和
+    // 当前出块节点质押与委托金额之和
     function totalAmount(address node, uint256 number) public view returns (uint256) {
-        uint256 epochIndex = number / EPOCH;
-        Record[] storage _records = records[epochIndex];
         uint256 amount = 0;
+        if (number <= EPOCH) {
+            return amount; // 第0个周期是内置的
+        }
+        uint256 epochIndex = number / EPOCH - 1; // 当前出块列表，要从上一轮里面的候选列表里面里面计算
+        Record[] storage _records = records[epochIndex];
+
         for (uint256 i = 0; i < _records.length; i++) {
             address curNode = _records[i].node;
             amount += curNode == node ? _records[i].amount : 0;
@@ -75,9 +83,28 @@ contract BSCValidatorSet {
         return amount;
     }
 
+    function totalCandidateAmount(address node, uint256 number) public view returns (uint256) {
+        uint256 amount = 0;
+        uint256 epochIndex = (number > 0 ? number - 1 : 0) / EPOCH;
+        Record[] storage _records = records[epochIndex];
+
+        for (uint256 i = 0; i < _records.length; i++) {
+            address curNode = _records[i].node;
+            amount += curNode == node ? _records[i].amount : 0;
+        }
+        return amount;
+    }
+
+    // 获取记录
+    function getRecordsByBlockNumber(uint256 number) public view returns (Record[] memory) {
+        uint256 epochIndex = (number > 0 ? number - 1 : 0) / EPOCH; // 刚好是epoch的时候，有可能查的是下一轮了，所以区块要减一
+        Record[] storage _records = records[epochIndex];
+        return _records;
+    }
+
     // 获取候选人列表
     function getCandidatesByBlockNumber(uint256 number) public view returns (address[] memory) {
-        uint256 epochIndex = number / EPOCH;
+        uint256 epochIndex = (number > 0 ? number - 1 : 0) / EPOCH;
         Record[] storage _records = records[epochIndex];
         address[] memory nodes = new address[](_records.length);
         uint256 length = 0;
@@ -108,7 +135,7 @@ contract BSCValidatorSet {
 
     // 获选人是否存在
     function hasCandidate(address node, uint256 number) public view returns (bool) {
-        uint256 epochIndex = number / EPOCH;
+        uint256 epochIndex = (number > 0 ? number - 1 : 0) / EPOCH;
         Record[] storage _records = records[epochIndex];
         for (uint256 i = 0; i < _records.length; i++) {
             address curNode = _records[i].node;
@@ -127,6 +154,7 @@ contract BSCValidatorSet {
         // console.log("epochIndex", epochIndex);
 
         // 第一轮写死
+        // 下一轮要确认出块节点了，比如一个EPOCH是20，那么在出第20个区块的时候，即组织第19个区块的时候，就会确定21 ~ 40的出块节点了
         if (epochIndex == 0 && (number + 1) % EPOCH != 0) {
             consensusAddrs[0] = 0x00000Be6819f41400225702D32d3dd23663Dd690;
             consensusAddrs[1] = 0x1111102Dd32160B064F2A512CDEf74bFdB6a9F96;
@@ -135,13 +163,13 @@ contract BSCValidatorSet {
         } else {
             // 从上一轮的候选列表里面找出当前轮的出块人
             if ((number + 1) % EPOCH == 0) {
-                number = number + 1; // 下一轮要确认出块节点了，比如一个EPOCH是20，那么在出第20个区块的时候，就会确定21 ~ 40的出块节点了
+                number = number + 1; // 为了计算epochIndex是正确的
             }
-            address[] memory nodes = getCandidatesByBlockNumber(number - EPOCH);
+            address[] memory nodes = getCandidatesByBlockNumber(number - EPOCH); // 这一轮出块节点从上一轮候选节点拿到
             Item[] memory items = new Item[](nodes.length);
 
             for (uint256 i = 0; i < nodes.length; i++) {
-                items[i] = Item(nodes[i], totalAmount(nodes[i], number - EPOCH));
+                items[i] = Item(nodes[i], totalCandidateAmount(nodes[i], number - EPOCH)); 
             }
 
             // for (uint256 i = 0; i < nodes.length; i++) {

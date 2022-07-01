@@ -31,14 +31,14 @@ describe("BSCValidatorSet Test", function () {
     console.log("==================================== BSCValidatorSet Test ====================================")
 
     // 合约部署
-    // const ValidatorSet = await ethers.getContractFactory("BSCValidatorSet", signer);
-    // const validatorSet = await ValidatorSet.deploy();
-    // await validatorSet.deployed();
-    // const validatorSetAddress = validatorSet.address
-    // console.log("BSCValidatorSet Deploy Address", validatorSetAddress)
+    const ValidatorSet = await ethers.getContractFactory("BSCValidatorSet", signer);
+    const validatorSet = await ValidatorSet.deploy();
+    await validatorSet.deployed();
+    const validatorSetAddress = validatorSet.address
+    console.log("BSCValidatorSet Deploy Address", validatorSetAddress)
 
-    const validatorSetAddress = "0x0000000000000000000000000000000000001000"
-    const validatorSet = await ethers.getContractAt("BSCValidatorSet", validatorSetAddress, signer)
+    // const validatorSetAddress = "0x0000000000000000000000000000000000001000"
+    // const validatorSet = await ethers.getContractAt("BSCValidatorSet", validatorSetAddress, signer)
 
     {
       // 质押8个节点
@@ -46,7 +46,7 @@ describe("BSCValidatorSet Test", function () {
         const signer = ethers.provider.getSigner(i);
         const node = await signer.getAddress()
         await validatorSet.connect(signer).stake(node, { value: toWei(10+i) });
-        // await validatorSet.connect(signer).delegate(node, { value: toWei(1000+i*10) });
+        await validatorSet.connect(signer).delegate(node, { value: toWei(1000+i*10) });
       }
       let blockNumber = await ethers.provider.getBlockNumber()
 
@@ -54,6 +54,9 @@ describe("BSCValidatorSet Test", function () {
         const node = await ethers.provider.getSigner(i).getAddress();
         console.log(`节点 ${node} 质押+委托总金额为：`, await validatorSet.totalAmount(node, blockNumber))
       }
+
+      const records = await validatorSet.getRecordsByBlockNumber(blockNumber)
+      console.log("提交记录", records);
 
       // while (blockNumber - 1 <= Epoch) {
       //   console.log(`区块高度${blockNumber}候选节点：`, await validatorSet.getCandidatesByBlockNumber(blockNumber))
